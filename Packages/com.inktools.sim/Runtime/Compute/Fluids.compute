@@ -1,0 +1,11 @@
+// Placeholder compute shader for GPU fluids (to be implemented)
+// Kernel stubs maintain structure for early integration.
+
+#pragma kernel CSMain
+
+RWTexture2D<float4> Velocity;
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    // noop placeholder
+}
+
