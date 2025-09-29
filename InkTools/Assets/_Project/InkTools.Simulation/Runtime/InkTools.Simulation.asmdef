@@ -1,6 +1,10 @@
 {
-  "name": "InkTools.Simulation",
-  "references": [],
+  "name": "Magi.InkTools.Simulation",
+  "rootNamespace": "Magi.InkTools.Simulation",
+  "references": [
+    "Unity.Mathematics",
+    "Unity.Burst"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
