@@ -1,0 +1,105 @@
+// Modular GPU fluid simulation using include files
+// Based on Navier-Stokes equations with stable fluids method
+
+// Define all kernel entry points
+#pragma kernel Advection
+#pragma kernel Diffusion
+#pragma kernel Divergence
+#pragma kernel Pressure
+#pragma kernel SubtractGradient
+#pragma kernel Vorticity
+#pragma kernel VorticityConfinement
+#pragma kernel AddForce
+#pragma kernel AddDensity
+#pragma kernel Clear
+
+// Optional advanced kernels
+#pragma kernel AdvectVelocity
+#pragma kernel AdvectionMacCormack
+#pragma kernel DiffuseQuantity
+#pragma kernel PressureRedBlack
+#pragma kernel VorticityHelicity
+#pragma kernel Buoyancy
+#pragma kernel AddRadialForce
+#pragma kernel AddVortexForce
+#pragma kernel AddColoredSmoke
+
+// Obstacle handling
+#pragma kernel UpdateObstacles
+#pragma kernel ApplyObstacleBoundary
+
+// Multi-resolution rendering
+#pragma kernel UpsampleBilinear
+#pragma kernel DownsampleAverage
+#pragma kernel TemporalUpsample
+#pragma kernel AdaptiveResolution
+
+// Optical flow integration
+#pragma kernel OpticalFlowHornSchunck
+#pragma kernel InjectOpticalFlow
+#pragma kernel ExtractVideoFlow
+#pragma kernel PyramidalOpticalFlow
+#pragma kernel PhaseCorrelationFlow
+
+// Global parameters (set from C#)
+float _DeltaTime;
+float _Dissipation;
+float _Viscosity;
+float _VorticityStrength;
+float2 _ForcePosition;
+float2 _ForceDirection;
+float _ForceRadius;
+float _ForceStrength;
+float _DensityAmount;
+float2 _SimulationSize;
+float _Alpha;
+float _InverseBeta;
+
+// Include the modular implementations
+#include "Include/SimulationTypes.hlsl"
+
+// Define the global parameters before including other files
+#define SIMPARAMS_DEFINED
+SimulationParams _SimParams;
+ForceParams _ForceParams;
+
+// Declare all textures once here using ifloat types for consistency
+RWTexture2D<ifloat4> _VelocityRead;
+RWTexture2D<ifloat4> _VelocityWrite;
+RWTexture2D<ifloat4> _DensityRead;
+RWTexture2D<ifloat4> _DensityWrite;
+RWTexture2D<ifloat4> _PressureRead;
+RWTexture2D<ifloat4> _PressureWrite;
+RWTexture2D<ifloat4> _QuantityRead;
+RWTexture2D<ifloat4> _QuantityWrite;
+RWTexture2D<ifloat> _DivergenceRead;
+RWTexture2D<ifloat> _DivergenceWrite;
+RWTexture2D<ifloat> _VorticityMag;
+
+// Tell includes that textures are already defined
+#define TEXTURES_DEFINED
+
+// Macro to initialize parameters in each kernel
+#define INIT_PARAMS \
+    _SimParams.deltaTime = _DeltaTime; \
+    _SimParams.viscosity = _Viscosity; \
+    _SimParams.dissipation = _Dissipation; \
+    _SimParams.vorticityStrength = _VorticityStrength; \
+    _SimParams.simulationSize = _SimulationSize; \
+    _SimParams.alpha = _Alpha; \
+    _SimParams.inverseBeta = _InverseBeta; \
+    _ForceParams.position = _ForcePosition; \
+    _ForceParams.direction = _ForceDirection; \
+    _ForceParams.radius = _ForceRadius; \
+    _ForceParams.strength = _ForceStrength; \
+    _ForceParams.densityAmount = _DensityAmount;
+
+// Include all kernel implementations
+#include "Include/Advection.hlsl"
+#include "Include/Diffusion.hlsl"
+#include "Include/PressureProjection.hlsl"
+#include "Include/Vorticity.hlsl"
+#include "Include/ForceInjection.hlsl"
+#include "Include/Obstacles.hlsl"
+#include "Include/MultiResolution.hlsl"
+#include "Include/OpticalFlow.hlsl"
