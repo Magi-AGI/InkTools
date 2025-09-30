@@ -1,0 +1,91 @@
+// Diffusion solver using Jacobi iteration
+
+#ifndef DIFFUSION_INCLUDED
+#define DIFFUSION_INCLUDED
+
+#include "SimulationCommon.hlsl"
+
+// Texture declarations (only if not already defined)
+
+// Diffusion using Jacobi iteration (for velocity)
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void Diffusion(iuint3 id : SV_DispatchThreadID)
+{
+    INIT_PARAMS
+
+    if (!IsValidPixel(id.xy, _SimParams.simulationSize)) return;
+
+    // Jacobi iteration for diffusion equation
+    // x_new = (x_old + alpha * sum(neighbors)) * inverseBeta
+
+    ifloat4 center = _VelocityRead[id.xy];
+
+    // Get neighbor samples
+    NeighborSamples neighbors = GetNeighbors(_VelocityRead, id.xy, _SimParams.simulationSize);
+
+    // Apply boundary conditions
+    if (id.x == 0) neighbors.left = -neighbors.right;
+    if (id.x >= (iuint)(_SimParams.simulationSize.x - 1)) neighbors.right = -neighbors.left;
+    if (id.y == 0) neighbors.down = -neighbors.up;
+    if (id.y >= (iuint)(_SimParams.simulationSize.y - 1)) neighbors.up = -neighbors.down;
+
+    // Sum neighbors
+    ifloat4 neighborSum = neighbors.left + neighbors.right +
+                         neighbors.down + neighbors.up;
+
+    // Jacobi update
+    ifloat4 result = (center + _SimParams.alpha * neighborSum) * _SimParams.inverseBeta;
+
+    _VelocityWrite[id.xy] = result;
+}
+
+// Generic diffusion for any quantity
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void DiffuseQuantity(iuint3 id : SV_DispatchThreadID)
+{
+    INIT_PARAMS
+
+    if (!IsValidPixel(id.xy, _SimParams.simulationSize)) return;
+
+    ifloat4 center = _QuantityRead[id.xy];
+    NeighborSamples neighbors = GetNeighbors(_QuantityRead, id.xy, _SimParams.simulationSize);
+
+    // No boundary conditions for scalar quantities (density, temperature, etc.)
+    ifloat4 neighborSum = neighbors.left + neighbors.right +
+                         neighbors.down + neighbors.up;
+
+    ifloat4 result = (center + _SimParams.alpha * neighborSum) * _SimParams.inverseBeta;
+
+    _QuantityWrite[id.xy] = result;
+}
+
+// Anisotropic diffusion (preserves edges better)
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void AnisotropicDiffusion(iuint3 id : SV_DispatchThreadID)
+{
+    INIT_PARAMS
+
+    if (!IsValidPixel(id.xy, _SimParams.simulationSize)) return;
+
+    ifloat4 center = _QuantityRead[id.xy];
+    NeighborSamples neighbors = GetNeighbors(_QuantityRead, id.xy, _SimParams.simulationSize);
+
+    // Calculate gradients
+    ifloat4 gradX = neighbors.right - neighbors.left;
+    ifloat4 gradY = neighbors.up - neighbors.down;
+
+    // Edge-stopping function (Perona-Malik)
+    ifloat edgeStrength = length(ifloat2(length(gradX), length(gradY)));
+    ifloat k = 0.1; // Edge threshold
+    ifloat diffusivity = 1.0 / (1.0 + (edgeStrength / k) * (edgeStrength / k));
+
+    // Weighted sum with edge preservation
+    ifloat4 neighborSum = neighbors.left + neighbors.right +
+                         neighbors.down + neighbors.up;
+
+    ifloat4 result = lerp(center, neighborSum * 0.25, diffusivity * _SimParams.alpha);
+
+    _QuantityWrite[id.xy] = result;
+}
+
+#endif // DIFFUSION_INCLUDED

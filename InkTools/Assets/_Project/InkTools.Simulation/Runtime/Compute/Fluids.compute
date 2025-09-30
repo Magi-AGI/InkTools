@@ -1,6 +1,7 @@
-// Fluid simulation compute shader with stub kernels
-// These are placeholder implementations for testing
+// Modular GPU fluid simulation using include files
+// Based on Navier-Stokes equations with stable fluids method
 
+// Define all kernel entry points
 #pragma kernel Advection
 #pragma kernel Diffusion
 #pragma kernel Divergence
@@ -12,19 +13,35 @@
 #pragma kernel AddDensity
 #pragma kernel Clear
 
-// Shared textures
-RWTexture2D<float4> _VelocityRead;
-RWTexture2D<float4> _VelocityWrite;
-RWTexture2D<float4> _QuantityRead;
-RWTexture2D<float4> _QuantityWrite;
-RWTexture2D<float4> _DensityRead;
-RWTexture2D<float4> _DensityWrite;
-RWTexture2D<float4> _PressureRead;
-RWTexture2D<float4> _PressureWrite;
-RWTexture2D<float> _DivergenceWrite;
-RWTexture2D<float> _VorticityMag;
+// Optional advanced kernels
+#pragma kernel AdvectVelocity
+#pragma kernel AdvectionMacCormack
+#pragma kernel DiffuseQuantity
+#pragma kernel PressureRedBlack
+#pragma kernel VorticityHelicity
+#pragma kernel Buoyancy
+#pragma kernel AddRadialForce
+#pragma kernel AddVortexForce
+#pragma kernel AddColoredSmoke
 
-// Parameters
+// Obstacle handling
+#pragma kernel UpdateObstacles
+#pragma kernel ApplyObstacleBoundary
+
+// Multi-resolution rendering
+#pragma kernel UpsampleBilinear
+#pragma kernel DownsampleAverage
+#pragma kernel TemporalUpsample
+#pragma kernel AdaptiveResolution
+
+// Optical flow integration
+#pragma kernel OpticalFlowHornSchunck
+#pragma kernel InjectOpticalFlow
+#pragma kernel ExtractVideoFlow
+#pragma kernel PyramidalOpticalFlow
+#pragma kernel PhaseCorrelationFlow
+
+// Global parameters (set from C#)
 float _DeltaTime;
 float _Dissipation;
 float _Viscosity;
@@ -32,106 +49,57 @@ float _VorticityStrength;
 float2 _ForcePosition;
 float2 _ForceDirection;
 float _ForceRadius;
+float _ForceStrength;
 float _DensityAmount;
+float2 _SimulationSize;
+float _Alpha;
+float _InverseBeta;
 
-[numthreads(8,8,1)]
-void Advection (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Simple passthrough with dissipation
-    float4 velocity = _VelocityRead[id.xy];
-    _VelocityWrite[id.xy] = velocity * _Dissipation;
-}
+// Include the modular implementations
+#include "Include/SimulationTypes.hlsl"
 
-[numthreads(8,8,1)]
-void Diffusion (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Simple passthrough
-    float4 velocity = _VelocityRead[id.xy];
-    _VelocityWrite[id.xy] = velocity;
-}
+// Define the global parameters before including other files
+#define SIMPARAMS_DEFINED
+SimulationParams _SimParams;
+ForceParams _ForceParams;
 
-[numthreads(8,8,1)]
-void Divergence (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Zero divergence
-    _DivergenceWrite[id.xy] = 0.0;
-}
+// Declare all textures once here using ifloat types for consistency
+RWTexture2D<ifloat4> _VelocityRead;
+RWTexture2D<ifloat4> _VelocityWrite;
+RWTexture2D<ifloat4> _DensityRead;
+RWTexture2D<ifloat4> _DensityWrite;
+RWTexture2D<ifloat4> _PressureRead;
+RWTexture2D<ifloat4> _PressureWrite;
+RWTexture2D<ifloat4> _QuantityRead;
+RWTexture2D<ifloat4> _QuantityWrite;
+RWTexture2D<ifloat> _DivergenceRead;
+RWTexture2D<ifloat> _DivergenceWrite;
+RWTexture2D<ifloat> _VorticityMag;
 
-[numthreads(8,8,1)]
-void Pressure (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Zero pressure
-    _PressureWrite[id.xy] = float4(0, 0, 0, 1);
-}
+// Tell includes that textures are already defined
+#define TEXTURES_DEFINED
 
-[numthreads(8,8,1)]
-void SubtractGradient (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Passthrough
-    float4 velocity = _VelocityRead[id.xy];
-    _VelocityWrite[id.xy] = velocity;
-}
+// Macro to initialize parameters in each kernel
+#define INIT_PARAMS \
+    _SimParams.deltaTime = _DeltaTime; \
+    _SimParams.viscosity = _Viscosity; \
+    _SimParams.dissipation = _Dissipation; \
+    _SimParams.vorticityStrength = _VorticityStrength; \
+    _SimParams.simulationSize = _SimulationSize; \
+    _SimParams.alpha = _Alpha; \
+    _SimParams.inverseBeta = _InverseBeta; \
+    _ForceParams.position = _ForcePosition; \
+    _ForceParams.direction = _ForceDirection; \
+    _ForceParams.radius = _ForceRadius; \
+    _ForceParams.strength = _ForceStrength; \
+    _ForceParams.densityAmount = _DensityAmount;
 
-[numthreads(8,8,1)]
-void Vorticity (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Zero vorticity
-    _VorticityMag[id.xy] = 0.0;
-}
-
-[numthreads(8,8,1)]
-void VorticityConfinement (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Passthrough
-    float4 velocity = _VelocityRead[id.xy];
-    _VelocityWrite[id.xy] = velocity;
-}
-
-[numthreads(8,8,1)]
-void AddForce (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Add simple radial force
-    float2 pos = float2(id.xy);
-    float dist = length(pos - _ForcePosition);
-
-    if (dist < _ForceRadius)
-    {
-        float4 velocity = _VelocityRead[id.xy];
-        float strength = 1.0 - (dist / _ForceRadius);
-        velocity.xy += _ForceDirection * strength * 0.1;
-        _VelocityWrite[id.xy] = velocity;
-    }
-    else
-    {
-        _VelocityWrite[id.xy] = _VelocityRead[id.xy];
-    }
-}
-
-[numthreads(8,8,1)]
-void AddDensity (uint3 id : SV_DispatchThreadID)
-{
-    // Stub: Add density blob
-    float2 pos = float2(id.xy);
-    float dist = length(pos - _ForcePosition);
-
-    if (dist < _ForceRadius)
-    {
-        float4 density = _DensityRead[id.xy];
-        float strength = 1.0 - (dist / _ForceRadius);
-        density += float4(_DensityAmount * strength, _DensityAmount * strength * 0.5, _DensityAmount * strength * 0.2, 1);
-        _DensityWrite[id.xy] = density;
-    }
-    else
-    {
-        _DensityWrite[id.xy] = _DensityRead[id.xy];
-    }
-}
-
-[numthreads(8,8,1)]
-void Clear (uint3 id : SV_DispatchThreadID)
-{
-    // Clear all buffers
-    _VelocityWrite[id.xy] = float4(0, 0, 0, 0);
-    _DensityWrite[id.xy] = float4(0, 0, 0, 0);
-    _PressureWrite[id.xy] = float4(0, 0, 0, 0);
-}
+// Include all kernel implementations
+#include "Include/Advection.hlsl"
+#include "Include/Diffusion.hlsl"
+#include "Include/PressureProjection.hlsl"
+#include "Include/Vorticity.hlsl"
+#include "Include/ForceInjection.hlsl"
+#include "Include/Obstacles.hlsl"
+#include "Include/MultiResolution.hlsl"
+#include "Include/OpticalFlow.hlsl"
