@@ -28,7 +28,7 @@ global using uint2 = Unity.Mathematics.uint2;
 global using uint3 = Unity.Mathematics.uint3;
 global using uint4 = Unity.Mathematics.uint4;
 
-namespace Magi.InkTools.Runtime.Simulation
+namespace Magi.InkTools.Simulation
 {
     /// <summary>
     /// Type definitions for Magi.InkTools simulation systems.

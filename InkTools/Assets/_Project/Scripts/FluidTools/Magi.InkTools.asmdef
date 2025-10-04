@@ -1,6 +1,6 @@
 {
-    "name": "Magi.InkTools.Runtime",
-    "rootNamespace": "Magi.InkTools.Runtime",
+    "name": "Magi.InkTools",
+    "rootNamespace": "Magi.InkTools",
     "references": [
         "Unity.Mathematics",
         "Unity.Burst"

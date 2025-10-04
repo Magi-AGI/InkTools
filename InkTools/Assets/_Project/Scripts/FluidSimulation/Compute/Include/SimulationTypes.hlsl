@@ -5,7 +5,7 @@
 #define SIMULATION_TYPES_INCLUDED
 
 // Include the existing InkTools type definitions
-#include "../../../Runtime/Simulation/Compute/InkToolsTypes.hlsl"
+#include "../../../FluidTools/Simulation/Compute/InkToolsTypes.hlsl"
 
 // Additional integer type aliases for consistency
 #define iint int

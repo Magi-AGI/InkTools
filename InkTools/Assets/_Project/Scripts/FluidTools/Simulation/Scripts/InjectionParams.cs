@@ -3,7 +3,7 @@ using System;
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 
-namespace Magi.InkTools.Runtime.Simulation
+namespace Magi.InkTools.Simulation
 {
   [StructLayout(LayoutKind.Sequential, Pack = 0)]
   [Serializable]
@@ -27,7 +27,7 @@ namespace Magi.InkTools.Runtime.Simulation
 
   }   // InjectionParams
 
-}   // Magi.InkTools.Runtime.Simulation
+}   // Magi.InkTools.Simulation
 
 #else
 
