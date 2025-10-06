@@ -5,7 +5,7 @@
 #define SIMULATION_TYPES_INCLUDED
 
 // Include the existing InkTools type definitions
-#include "../../../FluidTools/Simulation/Compute/InkToolsTypes.hlsl"
+#include "../../../Core/Compute/InkToolsTypes.hlsl"
 
 // Additional integer type aliases for consistency
 #define iint int
@@ -66,3 +66,4 @@ struct ForceParams
 #define BOUNDARY_FREE_SLIP 2
 
 #endif // SIMULATION_TYPES_INCLUDED
+

@@ -1,0 +1,27 @@
+// Simple velocity visualizer compute shader
+#pragma kernel VisualizeVelocity
+
+RWTexture2D<float4> VelocityInput;
+RWTexture2D<float4> ColorOutput;
+float VelocityScale;
+float2 SimulationSize;
+
+[numthreads(8,8,1)]
+void VisualizeVelocity (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)SimulationSize.x || id.y >= (uint)SimulationSize.y) return;
+
+    float2 vel = VelocityInput[id.xy].xy;
+    float magnitude = length(vel);
+
+    // Map velocity to color
+    // Red channel = X velocity (right is positive)
+    // Green channel = Y velocity (up is positive)
+    // Blue channel = magnitude
+
+    float r = (vel.x / VelocityScale) * 0.5 + 0.5;  // Map -VelocityScale..+VelocityScale to 0..1
+    float g = (vel.y / VelocityScale) * 0.5 + 0.5;
+    float b = saturate(magnitude / VelocityScale);
+
+    ColorOutput[id.xy] = float4(r, g, b, 1.0);
+}

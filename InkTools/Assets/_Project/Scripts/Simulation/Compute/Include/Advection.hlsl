@@ -21,7 +21,9 @@ void Advection(iuint3 id : SV_DispatchThreadID)
     ifloat2 velocity = _VelocityRead[id.xy].xy;
 
     // Trace particle back in time (semi-Lagrangian)
-    ifloat2 prevUV = uv - (velocity * _SimParams.deltaTime / _SimParams.simulationSize);
+    // Velocity is already in pixel-space units, convert to UV-space for advection
+    ifloat2 velocityUV = velocity / _SimParams.simulationSize;
+    ifloat2 prevUV = uv - (velocityUV * _SimParams.deltaTime);
 
     // Clamp to boundaries
     prevUV = saturate(prevUV);
@@ -47,7 +49,9 @@ void AdvectVelocity(iuint3 id : SV_DispatchThreadID)
     ifloat2 velocity = _VelocityRead[id.xy].xy;
 
     // Trace particle back in time
-    ifloat2 prevUV = uv - (velocity * _SimParams.deltaTime / _SimParams.simulationSize);
+    // Velocity is already in pixel-space units, convert to UV-space for advection
+    ifloat2 velocityUV = velocity / _SimParams.simulationSize;
+    ifloat2 prevUV = uv - (velocityUV * _SimParams.deltaTime);
 
     // Clamp to boundaries
     prevUV = saturate(prevUV);
@@ -73,14 +77,18 @@ void AdvectionMacCormack(iuint3 id : SV_DispatchThreadID)
     ifloat2 uv = PixelToUV(id.xy, _SimParams.simulationSize);
     ifloat2 velocity = _VelocityRead[id.xy].xy;
 
+    // Convert velocity to UV-space
+    ifloat2 velocityUV = velocity / _SimParams.simulationSize;
+
     // Forward step
-    ifloat2 posBack = uv - (velocity * _SimParams.deltaTime / _SimParams.simulationSize);
+    ifloat2 posBack = uv - (velocityUV * _SimParams.deltaTime);
     posBack = saturate(posBack);
     ifloat4 phi_n_hat = SampleBilinear(_QuantityRead, posBack, _SimParams.simulationSize);
 
     // Backward step
     ifloat2 velBack = SampleBilinear(_VelocityRead, posBack, _SimParams.simulationSize).xy;
-    ifloat2 posForward = posBack + (velBack * _SimParams.deltaTime / _SimParams.simulationSize);
+    ifloat2 velBackUV = velBack / _SimParams.simulationSize;
+    ifloat2 posForward = posBack + (velBackUV * _SimParams.deltaTime);
     posForward = saturate(posForward);
     ifloat4 phi_n_1 = SampleBilinear(_QuantityRead, posForward, _SimParams.simulationSize);
 

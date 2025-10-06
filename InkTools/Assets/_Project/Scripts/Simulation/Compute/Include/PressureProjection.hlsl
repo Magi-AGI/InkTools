@@ -78,8 +78,9 @@ void SubtractGradient(iuint3 id : SV_DispatchThreadID)
     ifloat2 velocity = _VelocityRead[id.xy].xy;
     velocity -= gradient;
 
-    // Apply boundary conditions
-    velocity = ApplyVelocityBoundary(velocity, id.xy, _SimParams.simulationSize, BOUNDARY_NO_SLIP);
+    // Don't apply boundary conditions here - they're already handled in divergence
+    // Applying them twice causes artifacts
+    // velocity = ApplyVelocityBoundary(velocity, id.xy, _SimParams.simulationSize, BOUNDARY_NO_SLIP);
 
     _VelocityWrite[id.xy] = ifloat4(velocity, 0, 1);
 }
