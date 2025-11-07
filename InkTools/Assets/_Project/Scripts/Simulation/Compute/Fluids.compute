@@ -24,6 +24,11 @@
 #pragma kernel AddVortexForce
 #pragma kernel AddColoredSmoke
 
+// Particle-based density simulation
+#pragma kernel AdvectParticles
+#pragma kernel DissipateParticles
+#pragma kernel AddParticlesGaussian
+
 // Obstacle handling
 #pragma kernel UpdateObstacles
 #pragma kernel ApplyObstacleBoundary
@@ -76,6 +81,12 @@ RWTexture2D<ifloat> _DivergenceRead;
 RWTexture2D<ifloat> _DivergenceWrite;
 RWTexture2D<ifloat> _VorticityMag;
 
+// Particle buffers for particle-based density simulation
+#include "../../Core/ScriptsAndShaders/iparticle.cs"
+#define PARTICLE_BUFFERS_DEFINED
+RWStructuredBuffer<iparticle> _ParticlesRead;
+RWStructuredBuffer<iparticle> _ParticlesWrite;
+
 // Tell includes that textures are already defined
 #define TEXTURES_DEFINED
 
@@ -103,3 +114,4 @@ RWTexture2D<ifloat> _VorticityMag;
 #include "Include/Obstacles.hlsl"
 #include "Include/MultiResolution.hlsl"
 #include "Include/OpticalFlow.hlsl"
+#include "Include/ParticleSimulation.hlsl"
