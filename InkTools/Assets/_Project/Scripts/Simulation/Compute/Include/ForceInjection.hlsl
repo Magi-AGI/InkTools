@@ -49,11 +49,10 @@ void AddDensity(iuint3 id : SV_DispatchThreadID)
     {
         ifloat falloff = GaussianFalloff(dist, _ForceParams.radius);
 
-        // Add colored density with temperature gradient
+        // Use caller-supplied ink color; scale by amount and falloff
+        ifloat3 inkRGB = _ForceParams.densityColor.rgb;
         ifloat4 newDensity = ifloat4(
-            _ForceParams.densityAmount * falloff,           // Red (temperature/heat)
-            _ForceParams.densityAmount * falloff * 0.5,     // Green
-            _ForceParams.densityAmount * falloff * 0.1,     // Blue
+            inkRGB * _ForceParams.densityAmount * falloff,
             1.0
         );
 

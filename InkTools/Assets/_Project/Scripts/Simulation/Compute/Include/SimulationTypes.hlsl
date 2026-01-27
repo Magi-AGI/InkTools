@@ -37,6 +37,7 @@ struct ForceParams
     ifloat radius;
     ifloat strength;
     ifloat densityAmount;
+    ifloat4 densityColor;
 };
 
 // Common texture declarations

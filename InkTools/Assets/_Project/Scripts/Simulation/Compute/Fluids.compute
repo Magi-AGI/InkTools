@@ -56,6 +56,7 @@ float2 _ForceDirection;
 float _ForceRadius;
 float _ForceStrength;
 float _DensityAmount;
+float4 _DensityColor;
 float2 _SimulationSize;
 float _Alpha;
 float _InverseBeta;
@@ -103,7 +104,8 @@ RWStructuredBuffer<iparticle> _ParticlesWrite;
     _ForceParams.direction = _ForceDirection; \
     _ForceParams.radius = _ForceRadius; \
     _ForceParams.strength = _ForceStrength; \
-    _ForceParams.densityAmount = _DensityAmount;
+    _ForceParams.densityAmount = _DensityAmount; \
+    _ForceParams.densityColor = _DensityColor;
 
 // Include all kernel implementations
 #include "Include/Advection.hlsl"
