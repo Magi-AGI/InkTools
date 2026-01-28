@@ -101,6 +101,26 @@ void AdvectParticles(iuint3 id : SV_DispatchThreadID)
     // Back-trace position
     ifloat2 prevPos = (ifloat2)id.xy - velocity * _SimParams.deltaTime;
 
+    // Absorbing boundary: if back-traced position is outside the domain,
+    // the particle has no valid source and is killed.  This prevents
+    // density pileup at edges caused by clamped bilinear sampling.
+    if (prevPos.x < 0 || prevPos.y < 0 ||
+        prevPos.x > (ifloat)(particleSize.x - 1) ||
+        prevPos.y > (ifloat)(particleSize.y - 1))
+    {
+        iparticle empty;
+        empty.fire = (ifloat)0; empty.water = (ifloat)0;
+        empty.plantSeeded = (ifloat)0; empty.plantGrown = (ifloat)0;
+        empty.steam = (ifloat)0; empty.glitter = (ifloat)0;
+        empty.blackBody = (ifloat)0;
+        empty.electricitySeeded = (ifloat)0; empty.electricityGrown = (ifloat)0;
+        empty.ice = (ifloat)0;
+        empty.red = (ifloat)0; empty.green = (ifloat)0;
+        empty.blue = (ifloat)0; empty.alpha = (ifloat)0;
+        _ParticlesWrite[particleIndex] = empty;
+        return;
+    }
+
     // Sample particle value at back-traced position
     iparticle advected = BilinearSampleParticles(prevPos, particleSize);
 
@@ -157,15 +177,13 @@ void AddParticlesGaussian(iuint3 id : SV_DispatchThreadID)
 
     if (dist < _ForceParams.radius)
     {
-        // Gaussian falloff
         ifloat falloff = GaussianFalloff(dist, _ForceParams.radius);
-
-        // Add particle concentrations (use densityAmount as base, distribute to channels based on direction components)
         ifloat amount = _ForceParams.densityAmount * falloff;
 
-        // Use ForceParams.direction to determine ink type (x=fire, y=water, etc.)
-        // For now, just add to fire channel - caller can customize by setting different ForceParams
-        p.fire = saturate(p.fire + amount);
+        // Route injection to channels via densityColor weights
+        p.fire  = saturate(p.fire  + amount * _ForceParams.densityColor.r);
+        p.water = saturate(p.water + amount * _ForceParams.densityColor.g);
+        p.ice   = saturate(p.ice   + amount * _ForceParams.densityColor.b);
     }
 
     _ParticlesWrite[particleIndex] = p;
