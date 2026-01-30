@@ -57,6 +57,7 @@ float _ForceRadius;
 float _ForceStrength;
 float _DensityAmount;
 float4 _DensityColor;
+int _InkTypeIndex;  // Which iparticle field to inject into (matches InkTypeId enum)
 float2 _SimulationSize;
 float _Alpha;
 float _InverseBeta;

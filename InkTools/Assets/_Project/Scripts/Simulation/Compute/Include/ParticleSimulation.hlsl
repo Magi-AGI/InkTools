@@ -157,8 +157,30 @@ void DissipateParticles(iuint3 id : SV_DispatchThreadID)
     _ParticlesWrite[particleIndex] = p;
 }
 
+// External parameter for ink type routing (set from C#, matches InkTypeId enum)
+// Declared in Fluids.compute: int _InkTypeIndex;
+
+// Helper: Add value to ink field by index (0-9, matches InkTypeId enum)
+void AddInkByIndex(inout iparticle p, int idx, ifloat amount)
+{
+    switch (idx)
+    {
+        case 0: p.fire = saturate(p.fire + amount); break;
+        case 1: p.water = saturate(p.water + amount); break;
+        case 2: p.plantSeeded = saturate(p.plantSeeded + amount); break;
+        case 3: p.plantGrown = saturate(p.plantGrown + amount); break;
+        case 4: p.steam = saturate(p.steam + amount); break;
+        case 5: p.glitter = saturate(p.glitter + amount); break;
+        case 6: p.blackBody = saturate(p.blackBody + amount); break;
+        case 7: p.electricitySeeded = saturate(p.electricitySeeded + amount); break;
+        case 8: p.electricityGrown = saturate(p.electricityGrown + amount); break;
+        case 9: p.ice = saturate(p.ice + amount); break;
+    }
+}
+
 // Add particles with Gaussian falloff around injection point
 // Uses ForceParams.position, .radius, and .densityAmount from main shader
+// Uses _InkTypeIndex to route injection to the correct iparticle field
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void AddParticlesGaussian(iuint3 id : SV_DispatchThreadID)
 {
@@ -180,10 +202,8 @@ void AddParticlesGaussian(iuint3 id : SV_DispatchThreadID)
         ifloat falloff = GaussianFalloff(dist, _ForceParams.radius);
         ifloat amount = _ForceParams.densityAmount * falloff;
 
-        // Route injection to channels via densityColor weights
-        p.fire  = saturate(p.fire  + amount * _ForceParams.densityColor.r);
-        p.water = saturate(p.water + amount * _ForceParams.densityColor.g);
-        p.ice   = saturate(p.ice   + amount * _ForceParams.densityColor.b);
+        // Route injection to the specified ink channel
+        AddInkByIndex(p, _InkTypeIndex, amount);
     }
 
     _ParticlesWrite[particleIndex] = p;
