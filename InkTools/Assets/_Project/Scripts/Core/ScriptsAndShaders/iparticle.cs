@@ -18,22 +18,22 @@ namespace Magi.InkTools.Simulation
     public struct iparticle
     {
         // Ink type concentrations
-        public ifloat fire;              // fire ink
-        public ifloat water;             // water ink
-        public ifloat plantSeeded;       // plant (seeded)
-        public ifloat plantGrown;        // plant (grown)
-        public ifloat steam;             // steam ink
-        public ifloat glitter;           // glitter ink
-        public ifloat blackBody;         // black body ink
-        public ifloat electricitySeeded; // electricity / lightning (seeded)
-        public ifloat electricityGrown;  // electricity / lightning (grown)
-        public ifloat ice;               // ice ink
+        public float fire;              // fire ink
+        public float water;             // water ink
+        public float plantSeeded;       // plant (seeded)
+        public float plantGrown;        // plant (grown)
+        public float steam;             // steam ink
+        public float glitter;           // glitter ink
+        public float blackBody;         // black body ink
+        public float electricitySeeded; // electricity / lightning (seeded)
+        public float electricityGrown;  // electricity / lightning (grown)
+        public float ice;               // ice ink
 
         // Color overrides (for custom rendering)
-        public ifloat red;               // red color override
-        public ifloat green;             // green color override
-        public ifloat blue;              // blue color override
-        public ifloat alpha;             // alpha override
+        public float red;               // red color override
+        public float green;             // green color override
+        public float blue;              // blue color override
+        public float alpha;             // alpha override
 
 #if CSHARP_7_3_OR_NEWER
 
