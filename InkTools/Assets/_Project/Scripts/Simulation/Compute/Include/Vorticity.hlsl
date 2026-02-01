@@ -26,7 +26,48 @@ void Vorticity(iuint3 id : SV_DispatchThreadID)
     _VorticityMag[id.xy] = abs(vorticity);
 }
 
+// Helper: Calculate ink-weighted vorticity strength at a position
+// Uses per-ink vorticity values and local ink concentrations
+ifloat GetInkWeightedVorticityStrength(iuint2 pos, iuint2 simSize)
+{
+#ifdef PARTICLE_BUFFERS_DEFINED
+    // Sample particle at this position
+    iuint particleIndex = pos.y * simSize.x + pos.x;
+    iparticle p = _ParticlesRead[particleIndex];
+
+    // Calculate total ink and weighted sum
+    ifloat totalInk = p.fire + p.water + p.plantSeeded + p.plantGrown +
+                      p.steam + p.glitter + p.blackBody +
+                      p.electricitySeeded + p.electricityGrown + p.ice;
+
+    if (totalInk < 0.0001)
+    {
+        // No ink present, use base vorticity strength
+        return _SimParams.vorticityStrength;
+    }
+
+    // Weighted average of per-ink vorticity contributions
+    ifloat weightedVort = p.fire * _VorticityFire +
+                          p.water * _VorticityWater +
+                          p.plantSeeded * _VorticityPlantSeeded +
+                          p.plantGrown * _VorticityPlantGrown +
+                          p.steam * _VorticitySteam +
+                          p.glitter * _VorticityGlitter +
+                          p.blackBody * _VorticityBlackBody +
+                          p.electricitySeeded * _VorticityElectricitySeeded +
+                          p.electricityGrown * _VorticityElectricityGrown +
+                          p.ice * _VorticityIce;
+
+    // Normalize by total ink and scale by base vorticity strength
+    return _SimParams.vorticityStrength * (weightedVort / totalInk);
+#else
+    // Fallback: no particle buffer, use global vorticity
+    return _SimParams.vorticityStrength;
+#endif
+}
+
 // Vorticity confinement - adds swirling motion back into the simulation
+// Uses per-ink vorticity weights when particle buffer is available
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void VorticityConfinement(iuint3 id : SV_DispatchThreadID)
 {
@@ -55,13 +96,19 @@ void VorticityConfinement(iuint3 id : SV_DispatchThreadID)
     {
         gradVort = normalize(gradVort);
 
+        // Get ink-weighted vorticity strength for this position
+        ifloat localVortStrength = GetInkWeightedVorticityStrength(id.xy, iuint2(_SimParams.simulationSize));
+
         // Calculate confinement force
         // Force is perpendicular to gradient, scaled by vorticity magnitude
-        ifloat2 vortForce = _SimParams.vorticityStrength * wC * ifloat2(gradVort.y, -gradVort.x);
+        ifloat2 vortForce = localVortStrength * wC * ifloat2(gradVort.y, -gradVort.x);
 
         // Add force to velocity
         ifloat2 velocity = _VelocityRead[id.xy].xy;
         velocity += vortForce * _SimParams.deltaTime;
+
+        // Clamp to prevent velocity explosion
+        velocity = ClampVelocity(velocity);
 
         _VelocityWrite[id.xy] = ifloat4(velocity, 0, 1);
     }
@@ -117,6 +164,9 @@ void Buoyancy(iuint3 id : SV_DispatchThreadID)
     // Apply buoyancy force (vertical only)
     ifloat2 velocity = _VelocityRead[id.xy].xy;
     velocity.y += buoyancy * _SimParams.deltaTime;
+
+    // Clamp to prevent velocity explosion
+    velocity = ClampVelocity(velocity);
 
     _VelocityWrite[id.xy] = ifloat4(velocity, 0, 1);
 }

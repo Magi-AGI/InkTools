@@ -7,6 +7,37 @@
 
 // Textures are declared in main Fluids.compute
 
+// Optional per-ink pressure weighting (requires PARTICLE_BUFFERS_DEFINED)
+ifloat GetLocalPressureWeight(iuint2 pos, iuint2 simSize)
+{
+#ifdef PARTICLE_BUFFERS_DEFINED
+    iuint idx = pos.y * simSize.x + pos.x;
+    iparticle p = _ParticlesRead[idx];
+
+    ifloat total = p.fire + p.water + p.plantSeeded + p.plantGrown +
+                   p.steam + p.glitter + p.blackBody +
+                   p.electricitySeeded + p.electricityGrown + p.ice;
+    if (total < 1e-6) return 1.0;
+
+    ifloat weighted = p.fire * _PressureFire +
+                      p.water * _PressureWater +
+                      p.plantSeeded * _PressurePlantSeeded +
+                      p.plantGrown * _PressurePlantGrown +
+                      p.steam * _PressureSteam +
+                      p.glitter * _PressureGlitter +
+                      p.blackBody * _PressureBlackBody +
+                      p.electricitySeeded * _PressureElectricitySeeded +
+                      p.electricityGrown * _PressureElectricityGrown +
+                      p.ice * _PressureIce;
+
+    // Allow weighting to strengthen or weaken pressure; floor to avoid zeroing divergence.
+    ifloat w = weighted / total;
+    return max(w, 0.25);
+#else
+    return 1.0;
+#endif
+}
+
 // Calculate divergence of velocity field
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void Divergence(iuint3 id : SV_DispatchThreadID)
@@ -26,6 +57,9 @@ void Divergence(iuint3 id : SV_DispatchThreadID)
 
     // Calculate divergence: div = ∂u/∂x + ∂v/∂y
     ifloat divergence = ((vel.right.x - vel.left.x) + (vel.up.y - vel.down.y)) * 0.5;
+
+    // Modulate divergence by local pressure weight (inks with low pressureWeight contribute less)
+    divergence *= GetLocalPressureWeight(id.xy, _SimParams.simulationSize);
 
     _DivergenceWrite[id.xy] = divergence;
 }
@@ -78,9 +112,12 @@ void SubtractGradient(iuint3 id : SV_DispatchThreadID)
     ifloat2 velocity = _VelocityRead[id.xy].xy;
     velocity -= gradient;
 
-    // Don't apply boundary conditions here - they're already handled in divergence
-    // Applying them twice causes artifacts
-    // velocity = ApplyVelocityBoundary(velocity, id.xy, _SimParams.simulationSize, BOUNDARY_NO_SLIP);
+    // Clamp to prevent velocity explosion at boundaries
+    velocity = ClampVelocity(velocity);
+
+    // Apply boundary conditions at edges to ensure no flow through walls
+    if (id.x == 0 || id.x >= (iuint)(_SimParams.simulationSize.x - 1)) velocity.x = 0;
+    if (id.y == 0 || id.y >= (iuint)(_SimParams.simulationSize.y - 1)) velocity.y = 0;
 
     _VelocityWrite[id.xy] = ifloat4(velocity, 0, 1);
 }

@@ -118,6 +118,20 @@ ifloat2 ApplyVelocityBoundary(ifloat2 velocity, iuint2 coord, ifloat2 simSize, i
     return velocity;
 }
 
+// Maximum velocity magnitude to prevent simulation explosion
+#define MAX_VELOCITY_MAGNITUDE 500.0
+
+// Clamp velocity to maximum magnitude to prevent explosion
+ifloat2 ClampVelocity(ifloat2 velocity)
+{
+    ifloat mag = length(velocity);
+    if (mag > MAX_VELOCITY_MAGNITUDE)
+    {
+        velocity = velocity * (MAX_VELOCITY_MAGNITUDE / mag);
+    }
+    return velocity;
+}
+
 // Gaussian falloff for force injection
 ifloat GaussianFalloff(ifloat distance, ifloat radius)
 {

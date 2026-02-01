@@ -121,10 +121,34 @@ void AdvectParticles(iuint3 id : SV_DispatchThreadID)
         return;
     }
 
+    // Current particle value (for partial advection)
+    iparticle p = _ParticlesRead[particleIndex];
+
     // Sample particle value at back-traced position
     iparticle advected = BilinearSampleParticles(prevPos, particleSize);
 
-    _ParticlesWrite[particleIndex] = advected;
+    // Optional per-ink advection weights (0 = static, 1 = fully advected)
+#define ADVE(ct, wt) lerp(p.ct, advected.ct, wt)
+    iparticle outp;
+    outp.fire = ADVE(fire, _AdvectionFire);
+    outp.water = ADVE(water, _AdvectionWater);
+    outp.plantSeeded = ADVE(plantSeeded, _AdvectionPlantSeeded);
+    outp.plantGrown = ADVE(plantGrown, _AdvectionPlantGrown);
+    outp.steam = ADVE(steam, _AdvectionSteam);
+    outp.glitter = ADVE(glitter, _AdvectionGlitter);
+    outp.blackBody = ADVE(blackBody, _AdvectionBlackBody);
+    outp.electricitySeeded = ADVE(electricitySeeded, _AdvectionElectricitySeeded);
+    outp.electricityGrown = ADVE(electricityGrown, _AdvectionElectricityGrown);
+    outp.ice = ADVE(ice, _AdvectionIce);
+
+    // Preserve color overrides from advected sample
+    outp.red = advected.red;
+    outp.green = advected.green;
+    outp.blue = advected.blue;
+    outp.alpha = advected.alpha;
+
+    _ParticlesWrite[particleIndex] = outp;
+#undef ADVE
 }
 
 // Dissipate particle concentrations over time
@@ -140,19 +164,67 @@ void DissipateParticles(iuint3 id : SV_DispatchThreadID)
     iuint particleIndex = id.y * particleSize.x + id.x;
     iparticle p = _ParticlesRead[particleIndex];
 
-    // Apply dissipation to all ink concentrations
-    p.fire *= _SimParams.dissipation;
-    p.water *= _SimParams.dissipation;
-    p.plantSeeded *= _SimParams.dissipation;
-    p.plantGrown *= _SimParams.dissipation;
-    p.steam *= _SimParams.dissipation;
-    p.glitter *= _SimParams.dissipation;
-    p.blackBody *= _SimParams.dissipation;
-    p.electricitySeeded *= _SimParams.dissipation;
-    p.electricityGrown *= _SimParams.dissipation;
-    p.ice *= _SimParams.dissipation;
+    // Apply per-ink dissipation rates
+    p.fire *= _DissipationFire;
+    p.water *= _DissipationWater;
+    p.plantSeeded *= _DissipationPlantSeeded;
+    p.plantGrown *= _DissipationPlantGrown;
+    p.steam *= _DissipationSteam;
+    p.glitter *= _DissipationGlitter;
+    p.blackBody *= _DissipationBlackBody;
+    p.electricitySeeded *= _DissipationElectricitySeeded;
+    p.electricityGrown *= _DissipationElectricityGrown;
+    p.ice *= _DissipationIce;
 
     // Do NOT dissipate color overrides - these are user-set and should persist
+
+    _ParticlesWrite[particleIndex] = p;
+}
+
+// Diffuse particle concentrations (per-ink viscosity/spreading)
+// Higher viscosity values cause more spreading to neighbors
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void DiffuseParticles(iuint3 id : SV_DispatchThreadID)
+{
+    INIT_PARAMS
+
+    iuint2 particleSize = iuint2(_SimParams.simulationSize);
+
+    if (id.x >= particleSize.x || id.y >= particleSize.y) return;
+
+    iuint particleIndex = id.y * particleSize.x + id.x;
+    iparticle p = _ParticlesRead[particleIndex];
+
+    // Sample cardinal neighbors
+    iuint2 left = iuint2(max((int)id.x - 1, 0), id.y);
+    iuint2 right = iuint2(min(id.x + 1, particleSize.x - 1), id.y);
+    iuint2 down = iuint2(id.x, max((int)id.y - 1, 0));
+    iuint2 up = iuint2(id.x, min(id.y + 1, particleSize.y - 1));
+
+    iparticle pL = _ParticlesRead[left.y * particleSize.x + left.x];
+    iparticle pR = _ParticlesRead[right.y * particleSize.x + right.x];
+    iparticle pD = _ParticlesRead[down.y * particleSize.x + down.x];
+    iparticle pU = _ParticlesRead[up.y * particleSize.x + up.x];
+
+    // Average of cardinal neighbors
+    #define NEIGHBOR_AVG(field) ((pL.field + pR.field + pD.field + pU.field) * 0.25)
+
+    // Apply per-ink viscosity (blend with neighbor average)
+    // viscosity=0 means no spreading, viscosity=1 means full blur
+    p.fire = lerp(p.fire, NEIGHBOR_AVG(fire), _ViscosityFire);
+    p.water = lerp(p.water, NEIGHBOR_AVG(water), _ViscosityWater);
+    p.plantSeeded = lerp(p.plantSeeded, NEIGHBOR_AVG(plantSeeded), _ViscosityPlantSeeded);
+    p.plantGrown = lerp(p.plantGrown, NEIGHBOR_AVG(plantGrown), _ViscosityPlantGrown);
+    p.steam = lerp(p.steam, NEIGHBOR_AVG(steam), _ViscositySteam);
+    p.glitter = lerp(p.glitter, NEIGHBOR_AVG(glitter), _ViscosityGlitter);
+    p.blackBody = lerp(p.blackBody, NEIGHBOR_AVG(blackBody), _ViscosityBlackBody);
+    p.electricitySeeded = lerp(p.electricitySeeded, NEIGHBOR_AVG(electricitySeeded), _ViscosityElectricitySeeded);
+    p.electricityGrown = lerp(p.electricityGrown, NEIGHBOR_AVG(electricityGrown), _ViscosityElectricityGrown);
+    p.ice = lerp(p.ice, NEIGHBOR_AVG(ice), _ViscosityIce);
+
+    #undef NEIGHBOR_AVG
+
+    // Do NOT diffuse color overrides - these are user-set and should persist
 
     _ParticlesWrite[particleIndex] = p;
 }

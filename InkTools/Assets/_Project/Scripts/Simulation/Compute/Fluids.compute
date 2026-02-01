@@ -27,6 +27,7 @@
 // Particle-based density simulation
 #pragma kernel AdvectParticles
 #pragma kernel DissipateParticles
+#pragma kernel DiffuseParticles
 #pragma kernel AddParticlesGaussian
 
 // Obstacle handling
@@ -59,6 +60,66 @@ float _DensityAmount;
 float4 _DensityColor;
 int _InkTypeIndex;  // Which iparticle field to inject into (matches InkTypeId enum)
 float2 _SimulationSize;
+
+// Per-ink dissipation rates (set from C#)
+float _DissipationFire;
+float _DissipationWater;
+float _DissipationPlantSeeded;
+float _DissipationPlantGrown;
+float _DissipationSteam;
+float _DissipationGlitter;
+float _DissipationBlackBody;
+float _DissipationElectricitySeeded;
+float _DissipationElectricityGrown;
+float _DissipationIce;
+
+// Per-ink viscosity (spreading/diffusion rates)
+float _ViscosityFire;
+float _ViscosityWater;
+float _ViscosityPlantSeeded;
+float _ViscosityPlantGrown;
+float _ViscositySteam;
+float _ViscosityGlitter;
+float _ViscosityBlackBody;
+float _ViscosityElectricitySeeded;
+float _ViscosityElectricityGrown;
+float _ViscosityIce;
+
+// Per-ink vorticity contribution (swirl effects)
+float _VorticityFire;
+float _VorticityWater;
+float _VorticityPlantSeeded;
+float _VorticityPlantGrown;
+float _VorticitySteam;
+float _VorticityGlitter;
+float _VorticityBlackBody;
+float _VorticityElectricitySeeded;
+float _VorticityElectricityGrown;
+float _VorticityIce;
+
+// Per-ink advection weights (0 = static, 1 = fully advected)
+float _AdvectionFire;
+float _AdvectionWater;
+float _AdvectionPlantSeeded;
+float _AdvectionPlantGrown;
+float _AdvectionSteam;
+float _AdvectionGlitter;
+float _AdvectionBlackBody;
+float _AdvectionElectricitySeeded;
+float _AdvectionElectricityGrown;
+float _AdvectionIce;
+
+// Per-ink pressure weights (reserved for future use)
+float _PressureFire;
+float _PressureWater;
+float _PressurePlantSeeded;
+float _PressurePlantGrown;
+float _PressureSteam;
+float _PressureGlitter;
+float _PressureBlackBody;
+float _PressureElectricitySeeded;
+float _PressureElectricityGrown;
+float _PressureIce;
 float _Alpha;
 float _InverseBeta;
 
