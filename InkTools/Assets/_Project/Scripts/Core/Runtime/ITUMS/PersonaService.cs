@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine;
 
 namespace Magi.InkTools.ITUMS
 {
@@ -98,3 +97,4 @@ namespace Magi.InkTools.ITUMS
         }
     }
 }
+
