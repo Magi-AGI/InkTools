@@ -37,6 +37,11 @@ namespace Magi.InkTools.ITUMS
         public Persona CurrentPersona { get; private set; } = Persona.Normal;
         public float QuietScore => idleSeconds;
         public float AggressiveScore => strokeSamples > 0 ? strokeSpeedSum / strokeSamples : 0f;
+        public PersonaConfig Config
+        {
+            get => config;
+            set => config = value;
+        }
 
         public event PersonaChanged OnPersonaChanged;
 
