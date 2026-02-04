@@ -1,0 +1,31 @@
+#pragma kernel Downsample
+
+Texture2D<float4> _Source;
+RWTexture2D<float4> _Dest;
+int2 _SourceSize;
+int2 _DestSize;
+
+// Each dest pixel averages a block of the source.
+[numthreads(8,8,1)]
+void Downsample(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _DestSize.x || id.y >= _DestSize.y) return;
+
+    int2 dest = int2(id.xy);
+    // Compute block in source
+    int2 blockSize = int2(max(_SourceSize.x / _DestSize.x, 1), max(_SourceSize.y / _DestSize.y, 1));
+    int2 start = dest * blockSize;
+    int2 end = min(start + blockSize, _SourceSize);
+
+    float4 sum = 0;
+    int count = 0;
+    for (int y = start.y; y < end.y; y++)
+    {
+        for (int x = start.x; x < end.x; x++)
+        {
+            sum += _Source[int2(x, y)];
+            count++;
+        }
+    }
+    _Dest[dest] = sum / max(count, 1);
+}
