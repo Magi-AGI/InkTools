@@ -121,6 +121,25 @@ namespace Magi.InkTools.Simulation
             return rt;
         }
 
+        /// <summary>
+        /// Provide external capture frames (current + previous) for flow extraction.
+        /// </summary>
+        public void SetSourceFrames(RenderTexture current, RenderTexture previous)
+        {
+            sourceFrame = current;
+            prevFrame = previous;
+            AllocateRTs();
+        }
+
+        /// <summary>
+        /// Provide simulation velocity buffers to read/write.
+        /// </summary>
+        public void SetVelocityTargets(RenderTexture read, RenderTexture write)
+        {
+            velocityInput = read;
+            velocityOutput = write;
+        }
+
         private void Dispatch2D(int kernel, int w, int h)
         {
             int tx = Mathf.CeilToInt(w / 8f);
