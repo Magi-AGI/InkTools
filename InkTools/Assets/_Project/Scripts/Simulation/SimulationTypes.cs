@@ -4,7 +4,7 @@ using Unity.Mathematics;
 // The ifloat, idouble and other types are already defined as global usings in
 // InkTools/Assets/_Project/Runtime/Simulation/Scripts/Types.cs
 
-namespace InkTools.Simulation.Runtime
+namespace Magi.InkTools.Simulation
 {
 
     /// <summary>
