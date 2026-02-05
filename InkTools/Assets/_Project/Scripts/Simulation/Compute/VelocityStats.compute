@@ -13,7 +13,8 @@ void Downsample(uint3 id : SV_DispatchThreadID)
 
     int2 dest = int2(id.xy);
     // Compute block in source
-    int2 blockSize = int2(max(_SourceSize.x / _DestSize.x, 1), max(_SourceSize.y / _DestSize.y, 1));
+    float2 ratio = max(float2(_SourceSize) / max(float2(_DestSize), 1.0.xx), 1.0.xx);
+    int2 blockSize = int2(ratio + 0.5);
     int2 start = dest * blockSize;
     int2 end = min(start + blockSize, _SourceSize);
 
