@@ -10,7 +10,9 @@ float _Falloff;   // exponent falloff (>=1)
 void AddFan(uint3 id : SV_DispatchThreadID)
 {
     uint2 uvInt = id.xy;
-    float2 uv = (float2(uvInt) + 0.5) / float2(_Velocity.GetDimensions());
+    uint width, height;
+    _Velocity.GetDimensions(width, height);
+    float2 uv = (float2(uvInt) + 0.5) / float2(width, height);
     float2 d = uv - _Center;
     float dist = length(d);
     if (dist > _Radius) return;

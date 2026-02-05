@@ -6,7 +6,12 @@
 
 RWStructuredBuffer<float4> _Tracers;
 Texture2D<float4> _Velocity;
-SamplerState samplerLinear : register(s0);
+SamplerState samplerLinear
+{
+    Filter = MIN_MAG_MIP_LINEAR;
+    AddressU = Clamp;
+    AddressV = Clamp;
+};
 
 uint _TracerCount;
 float _DeltaTime;

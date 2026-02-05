@@ -21,6 +21,7 @@ namespace Magi.InkTools.Simulation
         private RenderTexture tempFinal;
         private int kernelDownsample;
         private AsyncGPUReadbackRequest pending;
+        private bool pendingInFlight;
 
         private void OnEnable()
         {
@@ -43,7 +44,11 @@ namespace Magi.InkTools.Simulation
         private void LateUpdate()
         {
             if (velocityTexture == null) return;
-            if (pending.valid && !pending.done) return; // keep one in flight
+            if (pendingInFlight && !pending.done) return; // keep one in flight
+            if (pendingInFlight && pending.done)
+            {
+                pendingInFlight = false;
+            }
 
             EnsureRTs();
             // Pass 1: velocity -> tempReduce
@@ -52,10 +57,12 @@ namespace Magi.InkTools.Simulation
             DispatchDownsample(tempReduce, tempFinal);
 
             pending = AsyncGPUReadback.Request(tempFinal, 0, OnReadback);
+            pendingInFlight = true;
         }
 
         private void OnReadback(AsyncGPUReadbackRequest req)
         {
+            pendingInFlight = false;
             if (req.hasError) return;
             var data = req.GetData<Vector4>();
             if (data.Length == 0) return;

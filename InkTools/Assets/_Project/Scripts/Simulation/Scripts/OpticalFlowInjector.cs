@@ -97,6 +97,17 @@ namespace Magi.InkTools.Simulation
             downsampledPrev = CreateRT(w, h, prevFrame != null ? prevFrame.format : sourceFrame.format);
         }
 
+        private void EnsureRTs()
+        {
+            if (sourceFrame == null) return;
+            int w = Mathf.Max(1, sourceFrame.width / Mathf.Max(1, downsample));
+            int h = Mathf.Max(1, sourceFrame.height / Mathf.Max(1, downsample));
+            if (flowRT == null || flowRT.width != w || flowRT.height != h)
+            {
+                AllocateRTs();
+            }
+        }
+
         private RenderTexture DownsampleIfNeeded(RenderTexture src, ref RenderTexture dst)
         {
             if (dst == null || flowRT == null || dst.width != flowRT.width || dst.height != flowRT.height)

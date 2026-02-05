@@ -13,12 +13,12 @@ float _EdgeResetValue = 295.15; // Kelvin
 void AdvectHeat(uint3 id : SV_DispatchThreadID)
 {
     uint2 uv = id.xy;
-    int2 size;
-    _Heat.GetDimensions(size.x, size.y);
-    if (uv.x >= size.x || uv.y >= size.y) return;
+    uint width, height;
+    _Heat.GetDimensions(width, height);
+    if (uv.x >= width || uv.y >= height) return;
 
     // Edge reset to ambient
-    if (uv.x < 2 || uv.y < 2 || uv.x >= size.x-2 || uv.y >= size.y-2)
+    if (uv.x < 2 || uv.y < 2 || uv.x >= width-2 || uv.y >= height-2)
     {
         _Heat[uv] = _EdgeResetValue;
         return;
@@ -27,7 +27,7 @@ void AdvectHeat(uint3 id : SV_DispatchThreadID)
     float2 vel = _Velocity[uv].xy;
     float2 prevPos = (float2(uv) - vel * _DeltaTime);
 
-    prevPos = clamp(prevPos, float2(1,1), float2(size.x-2, size.y-2));
+    prevPos = clamp(prevPos, float2(1,1), float2(width-2, height-2));
     int2 p0 = int2(prevPos);
     int2 p1 = p0 + int2(1,0);
     int2 p2 = p0 + int2(0,1);

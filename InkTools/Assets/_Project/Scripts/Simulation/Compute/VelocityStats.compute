@@ -9,7 +9,7 @@ int2 _DestSize;
 [numthreads(8,8,1)]
 void Downsample(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= _DestSize.x || id.y >= _DestSize.y) return;
+    if ((int)id.x >= _DestSize.x || (int)id.y >= _DestSize.y) return;
 
     int2 dest = int2(id.xy);
     // Compute block in source
