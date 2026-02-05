@@ -13,6 +13,7 @@ namespace Magi.InkTools.Simulation
         [SerializeField] private bool render = true;
 
         private int kernel;
+        public RenderTexture Output => output;
 
         private void OnEnable()
         {
