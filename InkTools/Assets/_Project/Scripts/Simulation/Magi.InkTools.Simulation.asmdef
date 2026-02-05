@@ -4,7 +4,8 @@
     "references": [
         "Unity.Mathematics",
         "Unity.Burst",
-        "Magi.InkTools"
+        "Magi.InkTools",
+        "Magi.UnityTools"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

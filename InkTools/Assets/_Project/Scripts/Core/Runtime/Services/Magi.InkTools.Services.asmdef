@@ -3,7 +3,8 @@
     "rootNamespace": "Magi.InkTools.Services",
     "references": [
         "Unity.Mathematics",
-        "Unity.Burst"
+        "Unity.Burst",
+        "Magi.UnityTools"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
