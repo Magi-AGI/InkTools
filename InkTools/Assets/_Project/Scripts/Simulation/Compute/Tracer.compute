@@ -6,12 +6,7 @@
 
 RWStructuredBuffer<float4> _Tracers;
 Texture2D<float4> _Velocity;
-SamplerState samplerLinear
-{
-    Filter = MIN_MAG_MIP_LINEAR;
-    AddressU = Clamp;
-    AddressV = Clamp;
-};
+SamplerState sampler_Velocity;
 
 uint _TracerCount;
 float _DeltaTime;
@@ -55,7 +50,7 @@ void Advect(uint3 id : SV_DispatchThreadID)
     float4 t = _Tracers[id.x];
     float2 pos = t.xy;
 
-    float2 vel = _Velocity.SampleLevel(samplerLinear, pos, 0).xy * _VelocityScale;
+    float2 vel = _Velocity.SampleLevel(sampler_Velocity, pos, 0).xy * _VelocityScale;
     // simple drag
     vel = lerp(t.zw, vel, _Drag);
 
