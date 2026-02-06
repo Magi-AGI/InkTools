@@ -22,7 +22,13 @@ namespace Magi.InkTools.Simulation
         [SerializeField] private float speedRange = 2f;
         [SerializeField] private bool render = true;
 
+        [Header("Vorticity (optional)")]
+        [SerializeField] private RenderTexture vorticityTexture;
+        [SerializeField] private bool useVorticity = false;
+        [SerializeField, Range(0f, 1f)] private float vorticityBlend = 0.5f;
+
         private ComputeBuffer tracerBuffer;
+        private ComputeBuffer vorticityBuffer;
         private int kernelInit;
         private int kernelAdvect;
 
@@ -59,6 +65,14 @@ namespace Magi.InkTools.Simulation
             tracerCompute.SetFloat("_RespawnJitter", respawnJitter);
             tracerCompute.SetInt("_TracerCount", tracerCount);
 
+            bool vort = useVorticity && vorticityTexture != null && vorticityBuffer != null;
+            tracerCompute.SetInt("_UseVorticity", vort ? 1 : 0);
+            if (vort)
+            {
+                tracerCompute.SetBuffer(kernelAdvect, "_Vorticity", vorticityBuffer);
+                tracerCompute.SetTexture(kernelAdvect, "_VorticityTex", vorticityTexture);
+            }
+
             Dispatch(kernelAdvect);
         }
 
@@ -69,22 +83,34 @@ namespace Magi.InkTools.Simulation
             tracerMaterial.SetBuffer("_Tracers", tracerBuffer);
             tracerMaterial.SetFloat("_BaseSize", baseSize);
             tracerMaterial.SetFloat("_SpeedRange", speedRange);
+
+            bool vort = useVorticity && vorticityBuffer != null;
+            tracerMaterial.SetFloat("_UseVorticity", vort ? 1f : 0f);
+            if (vort)
+            {
+                tracerMaterial.SetBuffer("_Vorticity", vorticityBuffer);
+                tracerMaterial.SetFloat("_VorticityBlend", vorticityBlend);
+            }
+
             tracerMaterial.SetPass(0);
 
             Graphics.DrawProceduralNow(MeshTopology.Points, tracerCount, 1);
         }
 
         public void SetVelocityTexture(RenderTexture velocity) => velocityTexture = velocity;
+        public void SetVorticityTexture(RenderTexture rt) => vorticityTexture = rt;
 
         private void AllocateBuffer()
         {
             ReleaseBuffer();
             tracerBuffer = new ComputeBuffer(tracerCount, sizeof(float) * 4, ComputeBufferType.Default);
+            vorticityBuffer = new ComputeBuffer(tracerCount, sizeof(float), ComputeBufferType.Default);
         }
 
         private void DispatchInit()
         {
             tracerCompute.SetBuffer(kernelInit, "_Tracers", tracerBuffer);
+            tracerCompute.SetBuffer(kernelInit, "_Vorticity", vorticityBuffer);
             tracerCompute.SetInt("_TracerCount", tracerCount);
             Dispatch(kernelInit);
         }
@@ -100,6 +126,8 @@ namespace Magi.InkTools.Simulation
         {
             tracerBuffer?.Release();
             tracerBuffer = null;
+            vorticityBuffer?.Release();
+            vorticityBuffer = null;
         }
     }
 }

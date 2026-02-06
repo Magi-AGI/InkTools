@@ -4,11 +4,11 @@ using UnityEngine;
 namespace Magi.InkTools.Simulation
 {
     /// <summary>
-    /// Generic field brush utility: paints into a target RT using a material pass.
+    /// Generic field drawer utility: paints into a target RT using a material pass.
     /// Intended for pressure/heat/velocity painting (similar to Powder Toy tools).
     /// </summary>
-    [CreateAssetMenu(menuName = "InkTools/Simulation/Field Brush")]
-    public class FieldBrush : ScriptableObject
+    [CreateAssetMenu(menuName = "InkTools/Simulation/Field Drawer")]
+    public class FieldDrawer : ScriptableObject
     {
         [SerializeField] private Material paintMaterial;
         [SerializeField] private string centerParam = "_Center";
