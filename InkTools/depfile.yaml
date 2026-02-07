@@ -1,17 +1,84 @@
-registries:
-  magi: https://registry.example.com
-scopes:
-  - com.inktools
-  - com.magi
+# Magi Unity Dependency File
+version: 1.0
+
+project:
+  name: InkTools
+  unityVersion: 6000.2.0f1
+  targetPlatforms:
+    - StandaloneWindows64
+
 unity:
   editor: 6000.2.0f1
-  rp: urp
-  rp_version: 17.0.3
+  rp: hdrp
+  rp_version: 17.3.0
+
+registries:
+  - name: Unity
+    url: https://packages.unity.com
+    scopes:
+      - com.unity
+
 packages:
-  com.inktools.sim: 0.1.0
+  # Local packages (sibling repos)
+  - name: com.magi.unitytools
+    path: ../../MagiUnityTools/MagiUnityTools/Assets/_Project/Scripts
+    source: local
+
+  # Unity packages
+  - name: com.unity.burst
+    version: 1.8.27
+    source: registry
+
+  - name: com.unity.inputsystem
+    version: 1.17.0
+    source: registry
+
+  - name: com.unity.test-framework
+    version: 1.6.0
+    source: registry
+
+  - name: com.unity.testtools.codecoverage
+    version: 1.2.7
+    source: registry
+
+  - name: com.unity.feature.development
+    version: 1.0.2
+    source: registry
+
+  - name: com.unity.collab-proxy
+    version: 2.11.2
+    source: registry
+
+  - name: com.unity.editorcoroutines
+    version: 1.0.1
+    source: registry
+
+  - name: com.unity.ide.rider
+    version: 3.0.38
+    source: registry
+
+  - name: com.unity.multiplayer.center
+    version: 1.0.1
+    source: registry
+
+  - name: com.unity.render-pipelines.high-definition
+    version: 17.3.0
+    source: registry
+
+  - name: com.unity.timeline
+    version: 1.8.10
+    source: registry
+
+  - name: com.unity.ugui
+    version: 2.0.0
+    source: registry
+
+  - name: com.unity.visualscripting
+    version: 1.9.9
+    source: registry
+
 policy:
   allowGitDependencies: false
-  bannedApis:
+  bannedAPIs:
     - Resources.Load
     - FindObjectOfType
-
