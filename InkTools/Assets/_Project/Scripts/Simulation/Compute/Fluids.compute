@@ -35,6 +35,7 @@
 // Obstacle handling
 #pragma kernel UpdateObstacles
 #pragma kernel ApplyObstacleBoundary
+#pragma kernel InkToObstacles
 
 // Multi-resolution rendering
 #pragma kernel UpsampleBilinear

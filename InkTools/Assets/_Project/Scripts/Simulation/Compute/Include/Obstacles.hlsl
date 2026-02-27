@@ -111,4 +111,44 @@ NeighborSamples GetNeighborsWithObstacles(RWTexture2D<ifloat4> tex, iuint2 coord
     return samples;
 }
 
+// Per-ink obstacle thresholds (0 = not an obstacle ink, >0 = threshold)
+float _ObstacleThresholdFire;
+float _ObstacleThresholdWater;
+float _ObstacleThresholdPlantSeeded;
+float _ObstacleThresholdPlantGrown;
+float _ObstacleThresholdSteam;
+float _ObstacleThresholdGlitter;
+float _ObstacleThresholdBlackBody;
+float _ObstacleThresholdElectricitySeeded;
+float _ObstacleThresholdElectricityGrown;
+float _ObstacleThresholdIce;
+
+// Generate obstacle mask from ink concentrations in particle buffer.
+// Only writes 1.0 (additive with geometry obstacles). Never clears.
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void InkToObstacles(iuint3 id : SV_DispatchThreadID)
+{
+    INIT_PARAMS
+
+    if (!IsValidPixel(id.xy, _SimParams.simulationSize)) return;
+
+    iuint idx = id.y * (iuint)_SimParams.simulationSize.x + id.x;
+    iparticle p = _ParticlesRead[idx];
+
+    // Check each ink against its obstacle threshold (0 = skip)
+    if ((_ObstacleThresholdFire              > 0 && p.fire              >= _ObstacleThresholdFire) ||
+        (_ObstacleThresholdWater             > 0 && p.water             >= _ObstacleThresholdWater) ||
+        (_ObstacleThresholdPlantSeeded       > 0 && p.plantSeeded       >= _ObstacleThresholdPlantSeeded) ||
+        (_ObstacleThresholdPlantGrown        > 0 && p.plantGrown        >= _ObstacleThresholdPlantGrown) ||
+        (_ObstacleThresholdSteam             > 0 && p.steam             >= _ObstacleThresholdSteam) ||
+        (_ObstacleThresholdGlitter           > 0 && p.glitter           >= _ObstacleThresholdGlitter) ||
+        (_ObstacleThresholdBlackBody         > 0 && p.blackBody         >= _ObstacleThresholdBlackBody) ||
+        (_ObstacleThresholdElectricitySeeded > 0 && p.electricitySeeded >= _ObstacleThresholdElectricitySeeded) ||
+        (_ObstacleThresholdElectricityGrown  > 0 && p.electricityGrown  >= _ObstacleThresholdElectricityGrown) ||
+        (_ObstacleThresholdIce               > 0 && p.ice              >= _ObstacleThresholdIce))
+    {
+        _ObstacleWrite[id.xy] = 1.0;
+    }
+}
+
 #endif // OBSTACLES_INCLUDED
