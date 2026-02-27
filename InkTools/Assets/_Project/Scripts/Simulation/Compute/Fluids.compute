@@ -1,5 +1,7 @@
 // Modular GPU fluid simulation using include files
 // Based on Navier-Stokes equations with stable fluids method
+// Force injection uses velocity impulse model (no dt multiplication)
+// Vorticity: signed curl, resolution-scaled confinement, no dt in force application
 
 // Define all kernel entry points
 #pragma kernel Advection

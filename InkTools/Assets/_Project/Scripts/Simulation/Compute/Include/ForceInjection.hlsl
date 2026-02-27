@@ -26,7 +26,9 @@ void AddForce(iuint3 id : SV_DispatchThreadID)
         ifloat falloff = GaussianFalloff(dist, _ForceParams.radius);
         ifloat2 force = _ForceParams.direction * _ForceParams.strength * falloff;
 
-        velocity.xy += force * _SimParams.deltaTime;
+        // Velocity impulse (no * deltaTime) — standard for interactive Stam solvers.
+        // Advection already integrates velocity by dt for displacement.
+        velocity.xy += force;
     }
 
     _VelocityWrite[id.xy] = velocity;
@@ -80,11 +82,11 @@ void AddRadialForce(iuint3 id : SV_DispatchThreadID)
     {
         ifloat falloff = GaussianFalloff(dist, _ForceParams.radius);
 
-        // Radial force (outward from center)
+        // Radial force (outward from center) — velocity impulse
         ifloat2 radialDir = normalize(toPoint);
         ifloat2 force = radialDir * _ForceParams.strength * falloff;
 
-        velocity.xy += force * _SimParams.deltaTime;
+        velocity.xy += force;
     }
 
     _VelocityWrite[id.xy] = velocity;
@@ -108,12 +110,12 @@ void AddVortexForce(iuint3 id : SV_DispatchThreadID)
     {
         ifloat falloff = QuadraticFalloff(dist, _ForceParams.radius);
 
-        // Tangential force (perpendicular to radial)
+        // Tangential force (perpendicular to radial) — velocity impulse
         ifloat2 radialDir = normalize(toPoint);
         ifloat2 tangent = ifloat2(-radialDir.y, radialDir.x);
         ifloat2 force = tangent * _ForceParams.strength * falloff;
 
-        velocity.xy += force * _SimParams.deltaTime;
+        velocity.xy += force;
     }
 
     _VelocityWrite[id.xy] = velocity;

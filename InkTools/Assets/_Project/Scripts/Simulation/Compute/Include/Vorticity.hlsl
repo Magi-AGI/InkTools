@@ -20,10 +20,11 @@ void Vorticity(iuint3 id : SV_DispatchThreadID)
 
     // Calculate curl: ω = ∂v/∂x - ∂u/∂y
     // In 2D, vorticity is a scalar (perpendicular to plane)
+    // Store SIGNED value — sign encodes rotation direction (CW vs CCW),
+    // which VorticityConfinement needs for correct force direction.
     ifloat vorticity = ((vel.right.y - vel.left.y) - (vel.up.x - vel.down.x)) * 0.5;
 
-    // Store magnitude for vorticity confinement
-    _VorticityMag[id.xy] = abs(vorticity);
+    _VorticityMag[id.xy] = vorticity;
 }
 
 // Helper: Calculate ink-weighted vorticity strength at a position
@@ -81,13 +82,15 @@ void VorticityConfinement(iuint3 id : SV_DispatchThreadID)
     iuint2 down = iuint2(id.x, max(id.y - 1, 0));
     iuint2 up = iuint2(id.x, min(id.y + 1, _SimParams.simulationSize.y - 1));
 
-    ifloat wL = _VorticityMag[left];
-    ifloat wR = _VorticityMag[right];
-    ifloat wD = _VorticityMag[down];
-    ifloat wU = _VorticityMag[up];
-    ifloat wC = _VorticityMag[id.xy];
+    // Read signed vorticity; use abs() for gradient of MAGNITUDE,
+    // but keep signed center value for correct CW/CCW force direction.
+    ifloat wL = abs(_VorticityMag[left]);
+    ifloat wR = abs(_VorticityMag[right]);
+    ifloat wD = abs(_VorticityMag[down]);
+    ifloat wU = abs(_VorticityMag[up]);
+    ifloat wC = _VorticityMag[id.xy]; // signed — encodes rotation direction
 
-    // Gradient of vorticity magnitude (points to higher vorticity)
+    // Gradient of vorticity magnitude (points toward stronger vortices)
     ifloat2 gradVort = ifloat2(wR - wL, wU - wD) * 0.5;
 
     // Normalize gradient
@@ -99,13 +102,19 @@ void VorticityConfinement(iuint3 id : SV_DispatchThreadID)
         // Get ink-weighted vorticity strength for this position
         ifloat localVortStrength = GetInkWeightedVorticityStrength(id.xy, iuint2(_SimParams.simulationSize));
 
-        // Calculate confinement force
-        // Force is perpendicular to gradient, scaled by vorticity magnitude
-        ifloat2 vortForce = localVortStrength * wC * ifloat2(gradVort.y, -gradVort.x);
+        // Scale by resolution to compensate for texel-space finite differences:
+        // curl and gradient both shrink with finer grids, so the confinement
+        // force naturally weakens at higher resolution. Normalize to 256 baseline.
+        ifloat resScale = _SimParams.simulationSize.x / 256.0;
 
-        // Add force to velocity
+        // Calculate confinement force
+        // Force is perpendicular to gradient, scaled by signed vorticity (CW/CCW)
+        ifloat2 vortForce = localVortStrength * wC * ifloat2(gradVort.y, -gradVort.x) * resScale;
+
+        // Add force to velocity — velocity impulse (no * deltaTime).
+        // Advection already integrates velocity by dt for displacement.
         ifloat2 velocity = _VelocityRead[id.xy].xy;
-        velocity += vortForce * _SimParams.deltaTime;
+        velocity += vortForce;
 
         // Clamp to prevent velocity explosion
         velocity = ClampVelocity(velocity);
@@ -140,7 +149,8 @@ void VorticityHelicity(iuint3 id : SV_DispatchThreadID)
     ifloat strain = length(dudx) + length(dudy);
 
     // Combine vorticity with strain for enhanced turbulence
-    ifloat enhancedVort = abs(vorticity) * (1.0 + strain * 0.1);
+    // Preserve sign for VorticityConfinement force direction
+    ifloat enhancedVort = vorticity * (1.0 + strain * 0.1);
 
     _VorticityMag[id.xy] = enhancedVort;
 }
@@ -161,9 +171,9 @@ void Buoyancy(iuint3 id : SV_DispatchThreadID)
     ifloat ambientTemp = 0.0; // Ambient temperature
     ifloat buoyancy = (temperature - ambientTemp) * _SimParams.vorticityStrength; // Reuse vorticity strength
 
-    // Apply buoyancy force (vertical only)
+    // Apply buoyancy force (vertical only) — velocity impulse (no * deltaTime).
     ifloat2 velocity = _VelocityRead[id.xy].xy;
-    velocity.y += buoyancy * _SimParams.deltaTime;
+    velocity.y += buoyancy;
 
     // Clamp to prevent velocity explosion
     velocity = ClampVelocity(velocity);
