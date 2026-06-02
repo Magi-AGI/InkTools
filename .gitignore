@@ -128,3 +128,6 @@
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Editor tooling package (weekly cleanup)
+ProjectSettings/Packages/com.unity.dedicated-server/
