@@ -130,4 +130,5 @@
 Thumbs.db
 
 # Editor tooling package (weekly cleanup)
-ProjectSettings/Packages/com.unity.dedicated-server/
+# Project is nested one level down, so anchor with */ to match (root-anchored rule missed it).
+*/ProjectSettings/Packages/com.unity.dedicated-server/
