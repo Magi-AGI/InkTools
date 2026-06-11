@@ -1,0 +1,12 @@
+#pragma kernel CopyPressure
+
+Texture2D<float4> _Velocity;
+RWTexture2D<float4> _Out; // R = pressure magnitude, G/B unused
+
+[numthreads(8,8,1)]
+void CopyPressure(uint3 id : SV_DispatchThreadID)
+{
+    uint2 uv = id.xy;
+    float p = _Velocity[uv].z; // assume pressure packed in velocity.z if present
+    _Out[uv] = float4(abs(p), 0, 0, 1);
+}

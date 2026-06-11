@@ -1,0 +1,20 @@
+{
+    "name": "Magi.InkTools.Debug",
+    "rootNamespace": "Magi.InkTools.Simulation",
+    "references": [
+        "Unity.Mathematics",
+        "Magi.InkTools",
+        "Magi.UnityTools"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "INKTOOLS_DEBUG"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,79 @@
+#pragma kernel Init
+#pragma kernel Advect
+
+// Simple tracer advection for debug/visualization.
+// Stores tracers in a StructuredBuffer<float4> where xy = position (0-1), zw = velocity.
+
+RWStructuredBuffer<float4> _Tracers;
+RWStructuredBuffer<float> _Vorticity;
+Texture2D<float4> _Velocity;
+SamplerState sampler_Velocity;
+Texture2D<float4> _VorticityTex;
+SamplerState sampler_VorticityTex;
+
+uint _TracerCount;
+uint _UseVorticity;
+float _DeltaTime;
+float _VelocityScale;
+float _Drag;
+float _RespawnJitter;
+
+uint Hash(uint x)
+{
+    x ^= x >> 17;
+    x *= 0xed5ad4bbU;
+    x ^= x >> 11;
+    x *= 0xac4c1b51U;
+    x ^= x >> 15;
+    x *= 0x31848babU;
+    x ^= x >> 14;
+    return x;
+}
+
+float2 Hash2(uint seed)
+{
+    uint h1 = Hash(seed * 747796405u + 2891336453u);
+    uint h2 = Hash(seed * 1402946737u + 951274213u);
+    return float2(h1, h2) / 4294967296.0.xx;
+}
+
+[numthreads(256, 1, 1)]
+void Init(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _TracerCount) return;
+    float2 uv = Hash2(id.x);
+    float2 vel = float2(0, 0);
+    _Tracers[id.x] = float4(uv, vel);
+    _Vorticity[id.x] = 0;
+}
+
+[numthreads(256, 1, 1)]
+void Advect(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _TracerCount) return;
+
+    float4 t = _Tracers[id.x];
+    float2 pos = t.xy;
+
+    float2 vel = _Velocity.SampleLevel(sampler_Velocity, pos, 0).xy * _VelocityScale;
+    // simple drag
+    vel = lerp(t.zw, vel, _Drag);
+
+    pos += vel * _DeltaTime;
+
+    // wrap and occasional respawn to keep density even
+    if (any(pos < 0) || any(pos > 1))
+    {
+        pos = frac(pos + 1);
+        pos += (Hash2(id.x + 1337u) - 0.5) * _RespawnJitter;
+        pos = clamp(pos, 0, 1);
+    }
+
+    _Tracers[id.x] = float4(pos, vel);
+
+    if (_UseVorticity)
+    {
+        float vort = _VorticityTex.SampleLevel(sampler_VorticityTex, pos, 0).x;
+        _Vorticity[id.x] = vort;
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "name": "Magi.InkTools.Tests",
+    "rootNamespace": "Magi.InkTools.Tests",
+    "references": [
+        "Magi.InkTools",
+        "Magi.InkTools.Simulation",
+        "Magi.InkTools.Services",
+        "Magi.UnityTools",
+        "Magi.InkTools.TestHelpers"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,16 @@
+#pragma kernel Mask
+
+Texture2D<float4> _Velocity;
+RWTexture2D<float4> _MaskOut;
+float _Threshold;
+
+[numthreads(8,8,1)]
+void Mask(uint3 id : SV_DispatchThreadID)
+{
+    uint2 uv = id.xy;
+    float2 v = _Velocity[uv].xy;
+    float m = length(v);
+    float t = step(_Threshold, m);
+    // R = magnitude, G = thresholded mask, B unused
+    _MaskOut[uv] = float4(m, t, 0, 1);
+}

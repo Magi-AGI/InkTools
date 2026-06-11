@@ -1,0 +1,19 @@
+#pragma kernel Split
+
+Texture2D<float4> _Velocity;
+RWTexture2D<float4> _Out; // R = divergence, G = curl (scalar), B unused, A=1
+
+[numthreads(8,8,1)]
+void Split(uint3 id : SV_DispatchThreadID)
+{
+    uint2 uv = id.xy;
+    float2 vL = _Velocity[uv + uint2(-1, 0)].xy;
+    float2 vR = _Velocity[uv + uint2(1, 0)].xy;
+    float2 vB = _Velocity[uv + uint2(0, -1)].xy;
+    float2 vT = _Velocity[uv + uint2(0, 1)].xy;
+
+    float divergence = (vR.x - vL.x) * 0.5 + (vT.y - vB.y) * 0.5;
+    float curl = (vR.y - vL.y) * 0.5 - (vT.x - vB.x) * 0.5;
+
+    _Out[uv] = float4(divergence, curl, 0, 1);
+}
