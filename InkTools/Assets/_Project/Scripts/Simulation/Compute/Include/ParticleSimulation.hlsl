@@ -164,17 +164,21 @@ void DissipateParticles(iuint3 id : SV_DispatchThreadID)
     iuint particleIndex = id.y * particleSize.x + id.x;
     iparticle p = _ParticlesRead[particleIndex];
 
-    // Apply per-ink dissipation rates
-    p.fire *= _DissipationFire;
-    p.water *= _DissipationWater;
-    p.plantSeeded *= _DissipationPlantSeeded;
-    p.plantGrown *= _DissipationPlantGrown;
-    p.steam *= _DissipationSteam;
-    p.glitter *= _DissipationGlitter;
-    p.blackBody *= _DissipationBlackBody;
-    p.electricitySeeded *= _DissipationElectricitySeeded;
-    p.electricityGrown *= _DissipationElectricityGrown;
-    p.ice *= _DissipationIce;
+    // Apply per-ink dissipation rates. Uniforms are per-SECOND retention; pow(retention, dt)
+    // makes the decay frame-rate independent (product over a real second == the per-second value).
+    // max(.,0) keeps the base non-negative (retention is always 0..1) and silences the
+    // "pow(f,e) for negative f" compiler warning.
+    float dt = _FrameDeltaTime;
+    p.fire *= pow(max(_DissipationFire, 0.0), dt);
+    p.water *= pow(max(_DissipationWater, 0.0), dt);
+    p.plantSeeded *= pow(max(_DissipationPlantSeeded, 0.0), dt);
+    p.plantGrown *= pow(max(_DissipationPlantGrown, 0.0), dt);
+    p.steam *= pow(max(_DissipationSteam, 0.0), dt);
+    p.glitter *= pow(max(_DissipationGlitter, 0.0), dt);
+    p.blackBody *= pow(max(_DissipationBlackBody, 0.0), dt);
+    p.electricitySeeded *= pow(max(_DissipationElectricitySeeded, 0.0), dt);
+    p.electricityGrown *= pow(max(_DissipationElectricityGrown, 0.0), dt);
+    p.ice *= pow(max(_DissipationIce, 0.0), dt);
 
     // Do NOT dissipate color overrides - these are user-set and should persist
 

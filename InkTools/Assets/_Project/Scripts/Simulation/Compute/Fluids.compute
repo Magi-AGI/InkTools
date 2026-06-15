@@ -52,6 +52,10 @@
 
 // Global parameters (set from C#)
 float _DeltaTime;
+// Real-time seconds this step represents (real frame dt in play, fixed timestep under
+// deterministic/external step control). Used to dt-normalize exponential decays so behavior
+// is frame-rate independent. Per-ink dissipation uniforms are interpreted as per-SECOND retention.
+float _FrameDeltaTime;
 float _Dissipation;
 float _Viscosity;
 float _VorticityStrength;
