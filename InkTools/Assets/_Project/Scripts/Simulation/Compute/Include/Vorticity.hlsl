@@ -111,10 +111,12 @@ void VorticityConfinement(iuint3 id : SV_DispatchThreadID)
         // Force is perpendicular to gradient, scaled by signed vorticity (CW/CCW)
         ifloat2 vortForce = localVortStrength * wC * ifloat2(gradVort.y, -gradVort.x) * resScale;
 
-        // Add force to velocity — velocity impulse (no * deltaTime).
-        // Advection already integrates velocity by dt for displacement.
+        // dt-normalized impulse: scale by (real frame dt / fixed timestep) so the swirl injected
+        // per real second is frame-rate independent. Byte-identical at the reference rate
+        // (_FrameDeltaTime == _DeltaTime under deterministic/external step control); substepping
+        // keeps the per-step impulse bounded at low framerates.
         ifloat2 velocity = _VelocityRead[id.xy].xy;
-        velocity += vortForce;
+        velocity += vortForce * (_FrameDeltaTime / max(_DeltaTime, (ifloat)1e-6));
 
         // Clamp to prevent velocity explosion
         velocity = ClampVelocity(velocity);
@@ -171,9 +173,9 @@ void Buoyancy(iuint3 id : SV_DispatchThreadID)
     ifloat ambientTemp = 0.0; // Ambient temperature
     ifloat buoyancy = (temperature - ambientTemp) * _SimParams.vorticityStrength; // Reuse vorticity strength
 
-    // Apply buoyancy force (vertical only) — velocity impulse (no * deltaTime).
+    // dt-normalized impulse (see VorticityConfinement). Byte-identical at the reference rate.
     ifloat2 velocity = _VelocityRead[id.xy].xy;
-    velocity.y += buoyancy;
+    velocity.y += buoyancy * (_FrameDeltaTime / max(_DeltaTime, (ifloat)1e-6));
 
     // Clamp to prevent velocity explosion
     velocity = ClampVelocity(velocity);

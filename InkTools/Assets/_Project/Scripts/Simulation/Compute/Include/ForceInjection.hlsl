@@ -26,9 +26,10 @@ void AddForce(iuint3 id : SV_DispatchThreadID)
         ifloat falloff = GaussianFalloff(dist, _ForceParams.radius);
         ifloat2 force = _ForceParams.direction * _ForceParams.strength * falloff;
 
-        // Velocity impulse (no * deltaTime) — standard for interactive Stam solvers.
-        // Advection already integrates velocity by dt for displacement.
-        velocity.xy += force;
+        // dt-normalized impulse: scale by (real frame dt / fixed timestep) so the force injected
+        // per real second is frame-rate independent. Byte-identical at the reference rate
+        // (_FrameDeltaTime == _DeltaTime); substepping bounds the per-step impulse at low fps.
+        velocity.xy += force * (_FrameDeltaTime / max(_DeltaTime, (ifloat)1e-6));
     }
 
     _VelocityWrite[id.xy] = velocity;
@@ -86,7 +87,8 @@ void AddRadialForce(iuint3 id : SV_DispatchThreadID)
         ifloat2 radialDir = normalize(toPoint);
         ifloat2 force = radialDir * _ForceParams.strength * falloff;
 
-        velocity.xy += force;
+        // dt-normalized impulse (see AddForce).
+        velocity.xy += force * (_FrameDeltaTime / max(_DeltaTime, (ifloat)1e-6));
     }
 
     _VelocityWrite[id.xy] = velocity;
@@ -115,7 +117,8 @@ void AddVortexForce(iuint3 id : SV_DispatchThreadID)
         ifloat2 tangent = ifloat2(-radialDir.y, radialDir.x);
         ifloat2 force = tangent * _ForceParams.strength * falloff;
 
-        velocity.xy += force;
+        // dt-normalized impulse (see AddForce).
+        velocity.xy += force * (_FrameDeltaTime / max(_DeltaTime, (ifloat)1e-6));
     }
 
     _VelocityWrite[id.xy] = velocity;
