@@ -98,8 +98,9 @@ void AdvectParticles(iuint3 id : SV_DispatchThreadID)
     // Get velocity at this particle position
     ifloat2 velocity = GetVelocityAtParticle((ifloat2)id.xy, particleSize, iuint2(_SimParams.simulationSize));
 
-    // Back-trace position
-    ifloat2 prevPos = (ifloat2)id.xy - velocity * _SimParams.deltaTime;
+    // Back-trace position (dt-normalized: real frame dt so advection speed is frame-rate
+    // independent; equals _SimParams.deltaTime under deterministic/external step control).
+    ifloat2 prevPos = (ifloat2)id.xy - velocity * _FrameDeltaTime;
 
     // Absorbing boundary: if back-traced position is outside the domain,
     // the particle has no valid source and is killed.  This prevents
