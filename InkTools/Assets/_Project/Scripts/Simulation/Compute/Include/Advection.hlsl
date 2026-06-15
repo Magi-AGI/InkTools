@@ -31,8 +31,8 @@ void Advection(iuint3 id : SV_DispatchThreadID)
     // Sample quantity at previous position using bilinear interpolation
     ifloat4 quantity = SampleBilinear(_QuantityRead, prevUV, _SimParams.simulationSize);
 
-    // Apply dissipation
-    _QuantityWrite[id.xy] = quantity * _SimParams.dissipation;
+    // Apply dissipation (dt-normalized: _SimParams.dissipation is per-second retention)
+    _QuantityWrite[id.xy] = quantity * pow(max(_SimParams.dissipation, 0.0), _FrameDeltaTime);
 }
 
 // Specialized velocity advection with boundary conditions
@@ -62,8 +62,8 @@ void AdvectVelocity(iuint3 id : SV_DispatchThreadID)
     // Apply boundary conditions
     prevVelocity.xy = ApplyVelocityBoundary(prevVelocity.xy, id.xy, _SimParams.simulationSize, BOUNDARY_NO_SLIP);
 
-    // Write with velocity-specific dissipation
-    _VelocityWrite[id.xy] = ifloat4(prevVelocity.xy * _SimParams.dissipation, 0, 1);
+    // Write with velocity-specific dissipation (dt-normalized: per-second retention)
+    _VelocityWrite[id.xy] = ifloat4(prevVelocity.xy * pow(max(_SimParams.dissipation, 0.0), _FrameDeltaTime), 0, 1);
 }
 
 // MacCormack advection for higher accuracy (optional, more expensive)
@@ -96,8 +96,8 @@ void AdvectionMacCormack(iuint3 id : SV_DispatchThreadID)
     ifloat4 phi_n = _QuantityRead[id.xy];
     ifloat4 corrected = phi_n_hat + 0.5 * (phi_n - phi_n_1);
 
-    // Apply dissipation
-    _QuantityWrite[id.xy] = corrected * _SimParams.dissipation;
+    // Apply dissipation (dt-normalized: per-second retention)
+    _QuantityWrite[id.xy] = corrected * pow(max(_SimParams.dissipation, 0.0), _FrameDeltaTime);
 }
 
 #endif // ADVECTION_INCLUDED
