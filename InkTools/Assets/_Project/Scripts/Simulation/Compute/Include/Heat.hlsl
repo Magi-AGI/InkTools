@@ -5,15 +5,22 @@
 // the particle "mass" totals (PressureProjection/Vorticity) and lets buoyancy sample it as an
 // external field later (CP5), replacing the current _DensityRead.r fake-temperature proxy.
 //
-// CP1 scope: passive transport only (advection by velocity + decay toward ambient + optional
-// diffusion). There are NO heat sources and heat drives NOTHING yet, so with heat == 0 the whole
-// sim is byte-identical to pre-heat. Dedicated scalar kernels are used (rather than binding a
-// scalar RHalf RT into the generic ifloat4 _Quantity* advection) for API safety across backends.
+// Staged build-up:
+//   CP1: passive transport foundation — advection by velocity + decay toward ambient + optional
+//        diffusion. Dedicated scalar kernels are used (rather than binding a scalar RHalf RT into
+//        the generic ifloat4 _Quantity* advection) for API safety across backends.
+//   CP3: passive fire heat source — AddHeatSources adds heat from fire concentration (add-only,
+//        does not modify particles). Heat is now non-zero wherever fire exists.
+//   CP4: obstacle-aware transport (see note below).
+// Heat still drives NOTHING else yet (no buoyancy/reactions/phase changes) — it is diagnostic state,
+// visible only via the Heat debug view (_Channels2.z), never affecting Combined rendering.
 //
-// NOTE (CP2/CP3): heat transport does not yet respect obstacle boundaries — advection back-traces
-// and diffusion averages freely across _ObstacleRead solids. This is inert while heat == 0; gate
-// AdvectHeat/DiffuseHeat around _ObstacleRead when heat gains sources (requires binding the
-// obstacle RT to these kernels in FluidSolver).
+// CP4: heat transport is now obstacle-aware (no-flux). DiffuseHeat treats obstacle neighbors as the
+// center value (no exchange across a solid) and leaves obstacle cells un-diffused; AdvectHeat does
+// not advect into obstacle cells and, if the velocity back-trace path crosses a solid, falls back to
+// the current cell's heat instead of jumping heat across the obstacle. Requires _ObstacleRead bound
+// to both kernels (done in FluidSolver.Step). IsObstacle()/_ObstacleRead come from Obstacles.hlsl,
+// which Fluids.compute includes before this file.
 
 #ifndef HEAT_INCLUDED
 #define HEAT_INCLUDED
@@ -57,18 +64,44 @@ void AdvectHeat(iuint3 id : SV_DispatchThreadID)
 
     if (!IsValidPixel(id.xy, _SimParams.simulationSize)) return;
 
-    ifloat2 uv = PixelToUV(id.xy, _SimParams.simulationSize);
+    ifloat2 simSize = _SimParams.simulationSize;
+    ifloat retention = pow(max(_ThermalDissipation, 0.0), _FrameDeltaTime);
+    ifloat current = _HeatRead[id.xy];
+
+    // Obstacle cells don't pull fluid heat into themselves; just decay what they already hold.
+    if (IsObstacle(id.xy) > 0.5)
+    {
+        _HeatWrite[id.xy] = _AmbientTemperature + (current - _AmbientTemperature) * retention;
+        return;
+    }
+
+    ifloat2 uv = PixelToUV(id.xy, simSize);
 
     // Sample velocity (pixel-space units) and back-trace by real frame dt (dt-normalized flow).
     ifloat2 velocity = _VelocityRead[id.xy].xy;
-    ifloat2 velocityUV = velocity / _SimParams.simulationSize;
+    ifloat2 velocityUV = velocity / simSize;
     ifloat2 prevUV = saturate(uv - (velocityUV * _FrameDeltaTime));
 
-    ifloat advected = SampleHeatBilinear(_HeatRead, prevUV, _SimParams.simulationSize);
+    // No-flux advection: if the back-trace path crosses a solid, don't jump heat across it — fall
+    // back to the current cell's heat. A fixed 4-sample march (from this cell toward the source)
+    // keeps the obstacle test bounded and catches thin obstacles between cell and source.
+    ifloat2 curPix  = (ifloat2)id.xy;
+    ifloat2 prevPix = prevUV * simSize - 0.5;
+    int2 maxc = int2((int)simSize.x - 1, (int)simSize.y - 1);
+    bool blocked = false;
+    [unroll]
+    for (int s = 1; s <= 4; s++)
+    {
+        ifloat2 pos = lerp(curPix, prevPix, (ifloat)s / 4.0);
+        int2 cell = clamp((int2)floor(pos + 0.5), int2(0, 0), maxc);
+        if (IsObstacle((iuint2)cell) > 0.5)
+            blocked = true;
+    }
+
+    ifloat advected = blocked ? current : SampleHeatBilinear(_HeatRead, prevUV, simSize);
 
     // Decay toward ambient: retention is per-second, dt-normalized so cooling is frame-rate
     // independent. _ThermalDissipation == 1 => persistent; ambient default 0.
-    ifloat retention = pow(max(_ThermalDissipation, 0.0), _FrameDeltaTime);
     _HeatWrite[id.xy] = _AmbientTemperature + (advected - _AmbientTemperature) * retention;
 }
 
@@ -89,7 +122,20 @@ void DiffuseHeat(iuint3 id : SV_DispatchThreadID)
     iuint2 up    = iuint2(id.x, min(id.y + 1, size.y - 1));
 
     ifloat center = _HeatRead[id.xy];
-    ifloat avg = (_HeatRead[left] + _HeatRead[right] + _HeatRead[down] + _HeatRead[up]) * 0.25;
+
+    // Obstacle cells are not diffused (they don't exchange heat with the fluid); pass through.
+    if (IsObstacle(id.xy) > 0.5)
+    {
+        _HeatWrite[id.xy] = center;
+        return;
+    }
+
+    // No-flux: an obstacle neighbor contributes the center value (no exchange across the solid).
+    ifloat hL = IsObstacle(left)  > 0.5 ? center : _HeatRead[left];
+    ifloat hR = IsObstacle(right) > 0.5 ? center : _HeatRead[right];
+    ifloat hD = IsObstacle(down)  > 0.5 ? center : _HeatRead[down];
+    ifloat hU = IsObstacle(up)    > 0.5 ? center : _HeatRead[up];
+    ifloat avg = (hL + hR + hD + hU) * 0.25;
 
     _HeatWrite[id.xy] = lerp(center, avg, saturate(_ThermalDiffusion));
 }
