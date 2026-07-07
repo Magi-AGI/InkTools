@@ -35,6 +35,7 @@
 // Heat transport (scalar environment/temperature field — separate layer, like velocity/pressure)
 #pragma kernel AdvectHeat
 #pragma kernel DiffuseHeat
+#pragma kernel AddHeatSources
 
 // Obstacle handling
 #pragma kernel UpdateObstacles
@@ -134,10 +135,15 @@ float _PressureIce;
 float _Alpha;
 float _InverseBeta;
 
-// Heat (scalar environment/temperature field — CP1: inert, no sources yet)
+// Heat (scalar environment/temperature field)
 float _ThermalDissipation;   // per-second retention toward ambient (1 = persistent, 0 = instant cool)
 float _ThermalDiffusion;     // 0..1 blend toward cardinal-neighbor average per step
 float _AmbientTemperature;   // temperature heat decays toward (default 0)
+
+// Heat sources (CP3: fire emits heat; add-only, does not modify particles)
+int _EnableHeatSources;      // 0/1 gate for the AddHeatSources kernel
+float _FireHeatEmissionRate; // heat added per unit fire per second
+float _MaxHeat;              // clamp ceiling for the heat field (prevents runaway)
 
 // Include the modular implementations
 #include "Include/SimulationTypes.hlsl"

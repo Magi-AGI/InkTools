@@ -94,4 +94,29 @@ void DiffuseHeat(iuint3 id : SV_DispatchThreadID)
     _HeatWrite[id.xy] = lerp(center, avg, saturate(_ThermalDiffusion));
 }
 
+// Heat sources (CP3): fire concentration emits heat into the field. Add-only — this reads the
+// particle buffer but NEVER writes it, so fire is unaffected. Non-fire cells add nothing. The
+// source is dt-normalized (_FrameDeltaTime) so substeps/framerate don't change emission strength,
+// and clamped to _MaxHeat to prevent runaway. When disabled, current heat passes through unchanged.
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void AddHeatSources(iuint3 id : SV_DispatchThreadID)
+{
+    INIT_PARAMS
+
+    if (!IsValidPixel(id.xy, _SimParams.simulationSize)) return;
+
+    iuint2 size = iuint2(_SimParams.simulationSize);
+    iuint idx = id.y * size.x + id.x;
+
+    ifloat heat = _HeatRead[id.xy];
+
+    if (_EnableHeatSources != 0)
+    {
+        ifloat fire = _ParticlesRead[idx].fire;
+        heat = min(_MaxHeat, heat + fire * _FireHeatEmissionRate * _FrameDeltaTime);
+    }
+
+    _HeatWrite[id.xy] = heat;
+}
+
 #endif // HEAT_INCLUDED
