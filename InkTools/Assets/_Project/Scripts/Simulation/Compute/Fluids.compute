@@ -32,6 +32,10 @@
 #pragma kernel DiffuseParticles
 #pragma kernel AddParticlesGaussian
 
+// Heat transport (scalar environment/temperature field — separate layer, like velocity/pressure)
+#pragma kernel AdvectHeat
+#pragma kernel DiffuseHeat
+
 // Obstacle handling
 #pragma kernel UpdateObstacles
 #pragma kernel ApplyObstacleBoundary
@@ -130,6 +134,11 @@ float _PressureIce;
 float _Alpha;
 float _InverseBeta;
 
+// Heat (scalar environment/temperature field — CP1: inert, no sources yet)
+float _ThermalDissipation;   // per-second retention toward ambient (1 = persistent, 0 = instant cool)
+float _ThermalDiffusion;     // 0..1 blend toward cardinal-neighbor average per step
+float _AmbientTemperature;   // temperature heat decays toward (default 0)
+
 // Include the modular implementations
 #include "Include/SimulationTypes.hlsl"
 
@@ -150,6 +159,10 @@ RWTexture2D<ifloat4> _QuantityWrite;
 RWTexture2D<ifloat> _DivergenceRead;
 RWTexture2D<ifloat> _DivergenceWrite;
 RWTexture2D<ifloat> _VorticityMag;
+
+// Heat scalar layer (separate ping-pong field, transported by AdvectHeat/DiffuseHeat)
+RWTexture2D<ifloat> _HeatRead;
+RWTexture2D<ifloat> _HeatWrite;
 
 // Particle buffers for particle-based density simulation
 #include "../../Core/ScriptsAndShaders/iparticle.cs"
@@ -186,3 +199,4 @@ RWStructuredBuffer<iparticle> _ParticlesWrite;
 #include "Include/MultiResolution.hlsl"
 #include "Include/OpticalFlow.hlsl"
 #include "Include/ParticleSimulation.hlsl"
+#include "Include/Heat.hlsl"
