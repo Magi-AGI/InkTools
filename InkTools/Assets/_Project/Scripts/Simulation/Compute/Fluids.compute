@@ -138,7 +138,11 @@ float _InverseBeta;
 // Heat (scalar environment/temperature field)
 float _ThermalDissipation;   // per-second retention toward ambient (1 = persistent, 0 = instant cool)
 float _ThermalDiffusion;     // 0..1 blend toward cardinal-neighbor average per step
-float _AmbientTemperature;   // temperature heat decays toward (default 0)
+float _AmbientTemperature;   // temperature heat RELAXES TOWARD (the neutral / room temperature)
+// Absolute lower bound of the temperature range. NOT the same as _AmbientTemperature: the neutral
+// is only the relaxation target, whereas this is the floor. Clamping transport to the neutral would
+// make room temperature the coldest attainable state and ice could never form.
+float _MinTemperature;
 
 // Heat sources (CP3: fire emits heat; add-only, does not modify particles)
 int _EnableHeatSources;      // 0/1 gate for the AddHeatSources kernel

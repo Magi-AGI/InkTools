@@ -30,6 +30,21 @@
 // Heat textures (_HeatRead/_HeatWrite) and uniforms (_ThermalDissipation/_ThermalDiffusion/
 // _AmbientTemperature) are declared in the main Fluids.compute.
 
+// CP8a: every heat write must land inside the valid temperature range [_MinTemperature, _MaxHeat].
+//
+// The floor is _MinTemperature, NOT _AmbientTemperature. Those are different concepts: the ambient
+// (neutral / room) temperature is only what heat RELAXES TOWARD, whereas the min is the absolute
+// floor. Clamping to the neutral would make room temperature the coldest attainable state, so ice
+// could never form. Sub-neutral temperatures are valid and must survive transport untouched.
+//
+// This is applied on EVERY write path (including the obstacle and sources-disabled early-outs),
+// because with thermal interactions disabled the transport kernels are the ONLY thing writing heat —
+// nothing downstream would correct an out-of-range value.
+ifloat ClampTemperature(ifloat t)
+{
+    return clamp(t, _MinTemperature, _MaxHeat);
+}
+
 // Bilinear sample of a scalar heat texture. Uses SIGNED pixel-space coords + clamp so texels near
 // uv==0 (where uv - halfTexel goes slightly negative) don't underflow an unsigned cast to a huge
 // index. floor() gives the correct base cell for negative coords; the fractional weight follows it.
@@ -71,7 +86,7 @@ void AdvectHeat(iuint3 id : SV_DispatchThreadID)
     // Obstacle cells don't pull fluid heat into themselves; just decay what they already hold.
     if (IsObstacle(id.xy) > 0.5)
     {
-        _HeatWrite[id.xy] = _AmbientTemperature + (current - _AmbientTemperature) * retention;
+        _HeatWrite[id.xy] = ClampTemperature(_AmbientTemperature + (current - _AmbientTemperature) * retention);
         return;
     }
 
@@ -100,9 +115,9 @@ void AdvectHeat(iuint3 id : SV_DispatchThreadID)
 
     ifloat advected = blocked ? current : SampleHeatBilinear(_HeatRead, prevUV, simSize);
 
-    // Decay toward ambient: retention is per-second, dt-normalized so cooling is frame-rate
-    // independent. _ThermalDissipation == 1 => persistent; ambient default 0.
-    _HeatWrite[id.xy] = _AmbientTemperature + (advected - _AmbientTemperature) * retention;
+    // Decay toward the NEUTRAL (room) temperature: retention is per-second, dt-normalized so cooling
+    // is frame-rate independent. _ThermalDissipation == 1 => persistent.
+    _HeatWrite[id.xy] = ClampTemperature(_AmbientTemperature + (advected - _AmbientTemperature) * retention);
 }
 
 // Scalar heat diffusion: blend toward the cardinal-neighbor average by _ThermalDiffusion (0..1).
@@ -126,7 +141,7 @@ void DiffuseHeat(iuint3 id : SV_DispatchThreadID)
     // Obstacle cells are not diffused (they don't exchange heat with the fluid); pass through.
     if (IsObstacle(id.xy) > 0.5)
     {
-        _HeatWrite[id.xy] = center;
+        _HeatWrite[id.xy] = ClampTemperature(center);
         return;
     }
 
@@ -137,7 +152,7 @@ void DiffuseHeat(iuint3 id : SV_DispatchThreadID)
     ifloat hU = IsObstacle(up)    > 0.5 ? center : _HeatRead[up];
     ifloat avg = (hL + hR + hD + hU) * 0.25;
 
-    _HeatWrite[id.xy] = lerp(center, avg, saturate(_ThermalDiffusion));
+    _HeatWrite[id.xy] = ClampTemperature(lerp(center, avg, saturate(_ThermalDiffusion)));
 }
 
 // Heat sources (CP3): fire concentration emits heat into the field. Add-only — this reads the
@@ -162,7 +177,9 @@ void AddHeatSources(iuint3 id : SV_DispatchThreadID)
         heat = min(_MaxHeat, heat + fire * _FireHeatEmissionRate * _FrameDeltaTime);
     }
 
-    _HeatWrite[id.xy] = heat;
+    // Clamp on EVERY path, not just when sources are enabled — otherwise an out-of-range value would
+    // pass straight through this kernel untouched.
+    _HeatWrite[id.xy] = ClampTemperature(heat);
 }
 
 #endif // HEAT_INCLUDED
