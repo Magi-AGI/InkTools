@@ -155,6 +155,42 @@ void DiffuseHeat(iuint3 id : SV_DispatchThreadID)
     _HeatWrite[id.xy] = ClampTemperature(lerp(center, avg, saturate(_ThermalDiffusion)));
 }
 
+// Injection heat stamp (CP8b): writes a TARGET temperature into the heat field using the injection's
+// own centre/radius/gaussian falloff, so a painted ink arrives at a sensible initial temperature.
+//
+// This kernel is deliberately ink-AGNOSTIC: it just stamps `_InjectionTargetHeat`. The caller decides
+// what that target is per ink (Inkling maps Fire -> max, Water -> neutral, Ice -> min), which keeps
+// gameplay semantics out of the engine package.
+//
+// It is a ONE-SHOT INITIAL CONDITION applied when an injection is queued — NOT a per-frame source. It
+// therefore does not revive the free continuous fire heat that CP7b/CP7d deliberately removed: fire's
+// ongoing emission remains owned by the thermal-interactions pass, with its fuel cost.
+//
+// GaussianFalloff is 1.0 at distance 0, so the centre lands exactly on the target; cells outside the
+// radius pass through untouched. The result is clamped to [_MinTemperature, _MaxHeat] like every other
+// heat write, so an out-of-range target cannot escape the valid range.
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void StampInjectionHeat(iuint3 id : SV_DispatchThreadID)
+{
+    INIT_PARAMS
+
+    if (!IsValidPixel(id.xy, _SimParams.simulationSize)) return;
+
+    ifloat current = _HeatRead[id.xy];
+    ifloat result = current;
+
+    ifloat2 pos = (ifloat2)id.xy;
+    ifloat dist = length(pos - _ForceParams.position);
+
+    if (dist < _ForceParams.radius)
+    {
+        ifloat falloff = GaussianFalloff(dist, _ForceParams.radius);
+        result = lerp(current, _InjectionTargetHeat, falloff);
+    }
+
+    _HeatWrite[id.xy] = ClampTemperature(result);
+}
+
 // Heat sources (CP3): fire concentration emits heat into the field. Add-only — this reads the
 // particle buffer but NEVER writes it, so fire is unaffected. Non-fire cells add nothing. The
 // source is dt-normalized (_FrameDeltaTime) so substeps/framerate don't change emission strength,

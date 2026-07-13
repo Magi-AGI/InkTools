@@ -36,6 +36,7 @@
 #pragma kernel AdvectHeat
 #pragma kernel DiffuseHeat
 #pragma kernel AddHeatSources
+#pragma kernel StampInjectionHeat
 
 // Obstacle handling
 #pragma kernel UpdateObstacles
@@ -143,6 +144,10 @@ float _AmbientTemperature;   // temperature heat RELAXES TOWARD (the neutral / r
 // is only the relaxation target, whereas this is the floor. Clamping transport to the neutral would
 // make room temperature the coldest attainable state and ice could never form.
 float _MinTemperature;
+
+// CP8b: target temperature an injection stamps into the heat field, using the injection's own
+// centre/radius/falloff. Ink-agnostic — the caller picks the value per ink type.
+float _InjectionTargetHeat;
 
 // Heat sources (CP3: fire emits heat; add-only, does not modify particles)
 int _EnableHeatSources;      // 0/1 gate for the AddHeatSources kernel
