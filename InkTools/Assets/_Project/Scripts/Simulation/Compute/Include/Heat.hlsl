@@ -138,19 +138,23 @@ void DiffuseHeat(iuint3 id : SV_DispatchThreadID)
 
     ifloat center = _HeatRead[id.xy];
 
-    // Obstacle cells are not diffused (they don't exchange heat with the fluid); pass through.
-    if (IsObstacle(id.xy) > 0.5)
-    {
-        _HeatWrite[id.xy] = ClampTemperature(center);
-        return;
-    }
-
-    // No-flux: an obstacle neighbor contributes the center value (no exchange across the solid).
-    ifloat hL = IsObstacle(left)  > 0.5 ? center : _HeatRead[left];
-    ifloat hR = IsObstacle(right) > 0.5 ? center : _HeatRead[right];
-    ifloat hD = IsObstacle(down)  > 0.5 ? center : _HeatRead[down];
-    ifloat hU = IsObstacle(up)    > 0.5 ? center : _HeatRead[up];
-    ifloat avg = (hL + hR + hD + hU) * 0.25;
+    // CP8d — CONDUCTION IGNORES OBSTACLES, DELIBERATELY.
+    //
+    // Advection and conduction are different physics, and conflating them was a modelling error.
+    // Advection is transport BY THE FLUID: no flow through a solid => no advective heat transport,
+    // so AdvectHeat keeps its no-flux mask. But conduction is transport THROUGH MATTER, and an ink
+    // obstacle IS matter — ice and plant are solids, not vacuum. Real ice conducts heat (that is why
+    // it melts when you put a flame near it), and real vegetation heats up until it ignites.
+    //
+    // Treating ink obstacles as no-flux made them PERFECT INSULATORS: fire next to a plant could never
+    // warm it, so heat-driven ignition was physically impossible and dense ice could never be melted
+    // from outside. That is the bug this fixes.
+    //
+    // Note the obstacle mask merges geometry AND ink-generated obstacles into one RFloat, so we cannot
+    // distinguish them here. That is fine: a stone wall conducts heat too. If insulating geometry is
+    // ever wanted, the right mechanism is a per-cell CONDUCTIVITY mask (how fast heat crosses), not
+    // resurrecting the velocity obstacle mask — which would re-conflate the two physics.
+    ifloat avg = (_HeatRead[left] + _HeatRead[right] + _HeatRead[down] + _HeatRead[up]) * 0.25;
 
     _HeatWrite[id.xy] = ClampTemperature(lerp(center, avg, saturate(_ThermalDiffusion)));
 }
