@@ -138,7 +138,25 @@ float _InverseBeta;
 
 // Heat (scalar environment/temperature field)
 float _ThermalDissipation;   // per-second retention toward ambient (1 = persistent, 0 = instant cool)
-float _ThermalDiffusion;     // 0..1 blend toward cardinal-neighbor average per step
+float _ThermalDiffusion;      // CP8l: conduction rate PER SECOND in open fluid (was a per-frame blend)
+float _ThermalDiffusionSolid; // CP8l: conduction rate PER SECOND inside obstacle/solid cells. Solids
+                              // conduct BETTER than fluid.
+                              // CP8z: conduction is once again the ONLY way heat crosses a solid in the
+                              // DEFAULT (strict) model — see _HeatObstacleMode. CP8q's advective path is
+                              // retained only as an opt-in diagnostic mode.
+float _ThermalSolidPermeability; // CP8q, LEGACY: how much of the surrounding fluid velocity a SOLID cell
+                              // borrows for HEAT advection. IGNORED unless _HeatObstacleMode == 1. In the
+                              // default strict model heat never advects through a solid at all, so this
+                              // does nothing. Kept so the Fire-vs-Ice harness can A/B the old behaviour.
+// CP8z: selects how AdvectHeat treats obstacles. 0 = STRICT conduction-only (DEFAULT): a solid neither
+// advects heat into itself nor lets a fluid back-trace carry heat across it — heat crosses solids ONLY
+// by DiffuseHeat conduction. 1 = LEGACY advective (CP8q): solid cells borrow neighbour velocity and heat
+// rides the pre-boundary field through the barrier. Lake's revised model is strict; legacy stays for A/B.
+int _HeatObstacleMode;
+float _ThermalSolidThresholdIce; // CP8o: ice concentration at/above which a cell conducts at the SOLID
+                              // rate — DECOUPLED from _ObstacleThresholdIce (which governs FLUID blocking
+                              // and stays high, 0.5). ~0.1, below brush density (0.3), so painted ice
+                              // conducts/melts without becoming a flow obstacle. 0 disables the ice path.
 float _AmbientTemperature;   // temperature heat RELAXES TOWARD (the neutral / room temperature)
 // Absolute lower bound of the temperature range. NOT the same as _AmbientTemperature: the neutral
 // is only the relaxation target, whereas this is the floor. Clamping transport to the neutral would
