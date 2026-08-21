@@ -1,10 +1,25 @@
-// Type definitions for consistent usage between C# and HLSL
-// Uses Unity.Mathematics half type for 16-bit floating point on mobile
-
+// Type definitions for consistent usage between C# and HLSL.
+//
+// D2: `ifloat` defaults to FLOAT (storage-float), NOT half. iparticle uses `ifloat` fields, and the
+// particle ComputeBuffer's C#-side stride (Marshal.SizeOf<iparticle>()) must match the GPU layout every
+// backend produces. `float` keeps iparticle at a safe, portable 56 bytes; `half` (28 bytes) is only safe
+// where the shader compiler promotes half in structured buffers, which is NOT guaranteed on DX12/mobile.
+//
+// Central switch, mirrored in HLSL (InkToolsTypes.hlsl gates the SAME symbol): define the scripting symbol
+// INKTOOLS_IFLOAT_HALF (and the matching shader keyword) to flip both C# and HLSL to half for a future
+// half-vs-float experiment. That experiment (D3) must be validated on DX11/DX12/iOS Metal/Android Vulkan
+// before shipping. Default OFF = float on both sides — no size/stride change from the historical layout.
+#if INKTOOLS_IFLOAT_HALF
 global using ifloat = Unity.Mathematics.half;
 global using ifloat2 = Unity.Mathematics.half2;
 global using ifloat3 = Unity.Mathematics.half3;
 global using ifloat4 = Unity.Mathematics.half4;
+#else
+global using ifloat = System.Single;
+global using ifloat2 = Unity.Mathematics.float2;
+global using ifloat3 = Unity.Mathematics.float3;
+global using ifloat4 = Unity.Mathematics.float4;
+#endif
 
 // idouble maps to float for mobile performance (not actual double)
 global using idouble = System.Single;
@@ -36,12 +51,18 @@ namespace Magi.InkTools.Simulation
     /// </summary>
     public static class SimTypes
     {
+        // D2: kept in sync with the canonical InkToolsTypes.hlsl — `ifloat` DEFAULTS TO FLOAT, with an
+        // opt-in INKTOOLS_IFLOAT_HALF branch for the future half-vs-float experiment (D3). Previously this
+        // string branched on UNITY_HALF_PRECISION_SUPPORT (half-by-default), which contradicted the safe
+        // 56-byte particle-buffer contract. This constant is currently unused (the shared header
+        // InkToolsTypes.hlsl is the live include path); it is updated only to avoid re-introducing the
+        // old half-by-default drift if anything ever consumes it.
         public const string HLSL_TYPES_INCLUDE = @"
 // HLSL type definitions to match C# types
 #ifndef MAGI_INKTOOLS_TYPES_INCLUDED
 #define MAGI_INKTOOLS_TYPES_INCLUDED
 
-#ifdef UNITY_HALF_PRECISION_SUPPORT
+#ifdef INKTOOLS_IFLOAT_HALF
     #define ifloat half
     #define ifloat2 half2
     #define ifloat3 half3
