@@ -43,7 +43,12 @@ ifloat4 SampleBilinear(RWTexture2D<ifloat4> tex, ifloat2 uv, ifloat2 simSize)
     );
 }
 
-// Overload for float4 textures if needed
+// Overload for float4 textures. Only compiled in true-half mode (INKTOOLS_IFLOAT_HALF):
+// there ifloat4 is half4, a distinct type from float4, so this overload is genuinely needed.
+// Under the DEFAULT float mode ifloat4 IS float4, so the ifloat4 overload above already covers
+// float4 textures and defining this too is a redefinition (D3D11 "redefinition of 'SampleBilinear'").
+// Guarded so true-half experiments keep both overloads.
+#ifdef INKTOOLS_IFLOAT_HALF
 ifloat4 SampleBilinear(RWTexture2D<float4> tex, ifloat2 uv, ifloat2 simSize)
 {
     ifloat2 texelSize = 1.0 / simSize;
@@ -69,6 +74,7 @@ ifloat4 SampleBilinear(RWTexture2D<float4> tex, ifloat2 uv, ifloat2 simSize)
 
     return ifloat4(result);
 }
+#endif // INKTOOLS_IFLOAT_HALF
 
 // Get neighbor samples with boundary conditions
 struct NeighborSamples
