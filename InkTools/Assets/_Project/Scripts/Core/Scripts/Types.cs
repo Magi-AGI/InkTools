@@ -5,10 +5,12 @@
 // backend produces. `float` keeps iparticle at a safe, portable 56 bytes; `half` (28 bytes) is only safe
 // where the shader compiler promotes half in structured buffers, which is NOT guaranteed on DX12/mobile.
 //
-// Central switch, mirrored in HLSL (InkToolsTypes.hlsl gates the SAME symbol): define the scripting symbol
-// INKTOOLS_IFLOAT_HALF (and the matching shader keyword) to flip both C# and HLSL to half for a future
-// half-vs-float experiment. That experiment (D3) must be validated on DX11/DX12/iOS Metal/Android Vulkan
-// before shipping. Default OFF = float on both sides — no size/stride change from the historical layout.
+// Central switch, mirrored in HLSL (InkToolsTypes.hlsl gates the SAME symbol). Do NOT hand-edit either
+// side: the InkTools > ifloat Mode Editor toggle (InkToolsIFloatModeToggle) is the SINGLE WRITER of this
+// C# Standalone scripting define AND the generated HLSL include, and an EditMode audit test trips on any
+// drift between them. Flipping to half is a future half-vs-float experiment (D3) that must be validated on
+// DX11/DX12/iOS Metal/Android Vulkan before shipping. Default OFF = float on both sides — no size/stride
+// change from the historical layout.
 #if INKTOOLS_IFLOAT_HALF
 global using ifloat = Unity.Mathematics.half;
 global using ifloat2 = Unity.Mathematics.half2;

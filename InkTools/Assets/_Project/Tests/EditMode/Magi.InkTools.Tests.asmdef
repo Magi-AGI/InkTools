@@ -6,7 +6,8 @@
         "Magi.InkTools.Simulation",
         "Magi.InkTools.Services",
         "Magi.UnityTools",
-        "Magi.InkTools.TestHelpers"
+        "Magi.InkTools.TestHelpers",
+        "Unity.Mathematics"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"
