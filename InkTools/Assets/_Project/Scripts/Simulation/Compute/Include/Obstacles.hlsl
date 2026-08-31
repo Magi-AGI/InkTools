@@ -122,6 +122,7 @@ float _ObstacleThresholdBlackBody;
 float _ObstacleThresholdElectricitySeeded;
 float _ObstacleThresholdElectricityGrown;
 float _ObstacleThresholdIce;
+float _ObstacleThresholdMetal;   // M3a: true Metal acts as a velocity obstacle above this concentration
 
 // Generate obstacle mask from ink concentrations in particle buffer.
 // Only writes 1.0 (additive with geometry obstacles). Never clears.
@@ -145,7 +146,8 @@ void InkToObstacles(iuint3 id : SV_DispatchThreadID)
         (_ObstacleThresholdBlackBody         > 0 && p.blackBody         >= _ObstacleThresholdBlackBody) ||
         (_ObstacleThresholdElectricitySeeded > 0 && p.electricitySeeded >= _ObstacleThresholdElectricitySeeded) ||
         (_ObstacleThresholdElectricityGrown  > 0 && p.electricityGrown  >= _ObstacleThresholdElectricityGrown) ||
-        (_ObstacleThresholdIce               > 0 && p.ice              >= _ObstacleThresholdIce))
+        (_ObstacleThresholdIce               > 0 && p.ice              >= _ObstacleThresholdIce) ||
+        (_ObstacleThresholdMetal             > 0 && p.metal            >= _ObstacleThresholdMetal))
     {
         _ObstacleWrite[id.xy] = 1.0;
     }
