@@ -45,6 +45,7 @@ iparticle BilinearSampleParticles(ifloat2 pos, iuint2 bufferSize)
     result.electricitySeeded = lerp(lerp(lb.electricitySeeded, rb.electricitySeeded, delta.x), lerp(lt.electricitySeeded, rt.electricitySeeded, delta.x), delta.y);
     result.electricityGrown = lerp(lerp(lb.electricityGrown, rb.electricityGrown, delta.x), lerp(lt.electricityGrown, rt.electricityGrown, delta.x), delta.y);
     result.ice = lerp(lerp(lb.ice, rb.ice, delta.x), lerp(lt.ice, rt.ice, delta.x), delta.y);
+    result.metal = lerp(lerp(lb.metal, rb.metal, delta.x), lerp(lt.metal, rt.metal, delta.x), delta.y);
 
     // Color overrides use max instead of lerp (preserve user colors)
     result.red = max(max(lb.red, rb.red), max(lt.red, rt.red));
@@ -116,6 +117,7 @@ void AdvectParticles(iuint3 id : SV_DispatchThreadID)
         empty.blackBody = (ifloat)0;
         empty.electricitySeeded = (ifloat)0; empty.electricityGrown = (ifloat)0;
         empty.ice = (ifloat)0;
+        empty.metal = (ifloat)0;
         empty.red = (ifloat)0; empty.green = (ifloat)0;
         empty.blue = (ifloat)0; empty.alpha = (ifloat)0;
         _ParticlesWrite[particleIndex] = empty;
@@ -141,6 +143,7 @@ void AdvectParticles(iuint3 id : SV_DispatchThreadID)
     outp.electricitySeeded = ADVE(electricitySeeded, _AdvectionElectricitySeeded);
     outp.electricityGrown = ADVE(electricityGrown, _AdvectionElectricityGrown);
     outp.ice = ADVE(ice, _AdvectionIce);
+    outp.metal = ADVE(metal, _AdvectionMetal); // M0: default _AdvectionMetal=0 -> static (stays where painted)
 
     // Preserve color overrides from advected sample
     outp.red = advected.red;
@@ -180,6 +183,7 @@ void DissipateParticles(iuint3 id : SV_DispatchThreadID)
     p.electricitySeeded *= pow(max(_DissipationElectricitySeeded, 0.0), dt);
     p.electricityGrown *= pow(max(_DissipationElectricityGrown, 0.0), dt);
     p.ice *= pow(max(_DissipationIce, 0.0), dt);
+    p.metal *= pow(max(_DissipationMetal, 0.0), dt); // M0: default retention ~1.0 -> metal does not decay
 
     // Do NOT dissipate color overrides - these are user-set and should persist
 
@@ -226,6 +230,7 @@ void DiffuseParticles(iuint3 id : SV_DispatchThreadID)
     p.electricitySeeded = lerp(p.electricitySeeded, NEIGHBOR_AVG(electricitySeeded), _ViscosityElectricitySeeded);
     p.electricityGrown = lerp(p.electricityGrown, NEIGHBOR_AVG(electricityGrown), _ViscosityElectricityGrown);
     p.ice = lerp(p.ice, NEIGHBOR_AVG(ice), _ViscosityIce);
+    p.metal = lerp(p.metal, NEIGHBOR_AVG(metal), _ViscosityMetal); // M0: default _ViscosityMetal=0 -> no diffusion
 
     #undef NEIGHBOR_AVG
 
@@ -237,7 +242,7 @@ void DiffuseParticles(iuint3 id : SV_DispatchThreadID)
 // External parameter for ink type routing (set from C#, matches InkTypeId enum)
 // Declared in Fluids.compute: int _InkTypeIndex;
 
-// Helper: Add value to ink field by index (0-9, matches InkTypeId enum)
+// Helper: Add value to ink field by index (0-10, matches InkTypeId enum)
 void AddInkByIndex(inout iparticle p, int idx, ifloat amount)
 {
     switch (idx)
@@ -252,6 +257,7 @@ void AddInkByIndex(inout iparticle p, int idx, ifloat amount)
         case 7: p.electricitySeeded = saturate(p.electricitySeeded + amount); break;
         case 8: p.electricityGrown = saturate(p.electricityGrown + amount); break;
         case 9: p.ice = saturate(p.ice + amount); break;
+        case 10: p.metal = saturate(p.metal + amount); break;
     }
 }
 

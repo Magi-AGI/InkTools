@@ -85,6 +85,7 @@ float _DissipationBlackBody;
 float _DissipationElectricitySeeded;
 float _DissipationElectricityGrown;
 float _DissipationIce;
+float _DissipationMetal;
 
 // Per-ink viscosity (spreading/diffusion rates)
 float _ViscosityFire;
@@ -97,6 +98,7 @@ float _ViscosityBlackBody;
 float _ViscosityElectricitySeeded;
 float _ViscosityElectricityGrown;
 float _ViscosityIce;
+float _ViscosityMetal;
 
 // Per-ink vorticity contribution (swirl effects)
 float _VorticityFire;
@@ -109,6 +111,7 @@ float _VorticityBlackBody;
 float _VorticityElectricitySeeded;
 float _VorticityElectricityGrown;
 float _VorticityIce;
+float _VorticityMetal;
 
 // Per-ink advection weights (0 = static, 1 = fully advected)
 float _AdvectionFire;
@@ -121,6 +124,7 @@ float _AdvectionBlackBody;
 float _AdvectionElectricitySeeded;
 float _AdvectionElectricityGrown;
 float _AdvectionIce;
+float _AdvectionMetal;
 
 // Per-ink pressure weights (reserved for future use)
 float _PressureFire;
@@ -133,6 +137,7 @@ float _PressureBlackBody;
 float _PressureElectricitySeeded;
 float _PressureElectricityGrown;
 float _PressureIce;
+float _PressureMetal;
 float _Alpha;
 float _InverseBeta;
 

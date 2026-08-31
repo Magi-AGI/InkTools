@@ -17,10 +17,11 @@ namespace Magi.InkTools.Simulation
 #endif
     // D2: fields use `ifloat` (the shared x-macro type), for consistency across the C#/HLSL boundary and
     // so a future half-vs-float experiment can flip storage centrally. `ifloat` DEFAULTS TO FLOAT
-    // (Types.cs / InkToolsTypes.hlsl), so this struct is 56 bytes exactly as before — the particle
-    // ComputeBuffer stride and the float readback mirrors are unchanged. Do NOT flip ifloat to half
-    // without the D3 per-backend validation: a 28-byte iparticle would break the StructuredBuffer layout
-    // contract (see SimulationResources.CreateParticleBuffers and its stride guard).
+    // (Types.cs / InkToolsTypes.hlsl). M0 (true Metal): this struct now has 15 ifloat fields = 60 bytes in
+    // the default float mode (Metal added at ink index 10, after Ice and before the color overrides). The
+    // particle ComputeBuffer stride and the float readback mirrors must match 60. Do NOT flip ifloat to half
+    // without the D3 per-backend validation: a 30-byte iparticle would break the StructuredBuffer layout
+    // contract (see SimulationResources.AllocateParticleBuffers and its stride guard, now 60).
     public struct iparticle
     {
         // Ink type concentrations
@@ -34,6 +35,7 @@ namespace Magi.InkTools.Simulation
         public ifloat electricitySeeded; // electricity / lightning (seeded)
         public ifloat electricityGrown;  // electricity / lightning (grown)
         public ifloat ice;               // ice ink
+        public ifloat metal;             // metal ink (index 10) — conductive substrate, distinct from blackBody
 
         // Color overrides (for custom rendering)
         public ifloat red;               // red color override

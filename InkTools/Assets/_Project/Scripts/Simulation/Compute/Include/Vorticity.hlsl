@@ -39,7 +39,7 @@ ifloat GetInkWeightedVorticityStrength(iuint2 pos, iuint2 simSize)
     // Calculate total ink and weighted sum
     ifloat totalInk = p.fire + p.water + p.plantSeeded + p.plantGrown +
                       p.steam + p.glitter + p.blackBody +
-                      p.electricitySeeded + p.electricityGrown + p.ice;
+                      p.electricitySeeded + p.electricityGrown + p.ice + p.metal;
 
     if (totalInk < 0.0001)
     {
@@ -57,7 +57,8 @@ ifloat GetInkWeightedVorticityStrength(iuint2 pos, iuint2 simSize)
                           p.blackBody * _VorticityBlackBody +
                           p.electricitySeeded * _VorticityElectricitySeeded +
                           p.electricityGrown * _VorticityElectricityGrown +
-                          p.ice * _VorticityIce;
+                          p.ice * _VorticityIce +
+                          p.metal * _VorticityMetal;
 
     // Normalize by total ink and scale by base vorticity strength
     return _SimParams.vorticityStrength * (weightedVort / totalInk);

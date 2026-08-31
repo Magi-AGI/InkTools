@@ -16,8 +16,9 @@ namespace Magi.InkTools.Editor
     ///
     /// This is the only supported way to change ifloat storage mode. B1 manages Standalone ONLY; iOS/Android
     /// are deferred (B3) and deliberately left at float/OFF — the safe default protected by the particle
-    /// layout guard. Flipping to half is EXPERIMENTAL: it changes the C#-side iparticle stride to 28 bytes,
-    /// which the SimulationResources guard rejects at runtime until Slice B2 adds half-aware mirrors/stride.
+    /// layout guard. Flipping to half is EXPERIMENTAL: it changes the C#-side iparticle stride to 30 bytes
+    /// (M0: 15 half fields), which the SimulationResources guard (60) rejects at runtime until half-aware
+    /// mirrors/stride land.
     /// The committed repository state is float/OFF; use "Set Float (default)" to restore it after any test.
     /// </summary>
     public static class InkToolsIFloatModeToggle

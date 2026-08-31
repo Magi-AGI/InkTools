@@ -16,7 +16,7 @@ ifloat GetLocalPressureWeight(iuint2 pos, iuint2 simSize)
 
     ifloat total = p.fire + p.water + p.plantSeeded + p.plantGrown +
                    p.steam + p.glitter + p.blackBody +
-                   p.electricitySeeded + p.electricityGrown + p.ice;
+                   p.electricitySeeded + p.electricityGrown + p.ice + p.metal;
     if (total < 1e-6) return 1.0;
 
     ifloat weighted = p.fire * _PressureFire +
@@ -28,7 +28,8 @@ ifloat GetLocalPressureWeight(iuint2 pos, iuint2 simSize)
                       p.blackBody * _PressureBlackBody +
                       p.electricitySeeded * _PressureElectricitySeeded +
                       p.electricityGrown * _PressureElectricityGrown +
-                      p.ice * _PressureIce;
+                      p.ice * _PressureIce +
+                      p.metal * _PressureMetal;
 
     // Allow weighting to strengthen or weaken pressure; floor to avoid zeroing divergence.
     ifloat w = weighted / total;

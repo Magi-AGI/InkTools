@@ -20,13 +20,14 @@ namespace Magi.InkTools.Simulation
         ElectricitySeeded = 7,
         ElectricityGrown = 8,
         Ice = 9,
+        Metal = 10,
 
         // Color overrides (not typically used as ink types)
-        Red = 10,
-        Green = 11,
-        Blue = 12,
-        Alpha = 13,
+        Red = 11,
+        Green = 12,
+        Blue = 13,
+        Alpha = 14,
 
-        Count = 10  // Number of ink channels (excludes color overrides)
+        Count = 11  // Number of ink channels (excludes color overrides)
     }
 }

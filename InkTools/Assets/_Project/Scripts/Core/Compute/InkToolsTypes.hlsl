@@ -1,11 +1,11 @@
 // InkTools type definitions for HLSL
 // Matches the C# global usings in Types.cs
 //
-// D2: `ifloat` defaults to FLOAT (storage-float), NOT half. This is deliberate and load-bearing:
+// D2/M0: `ifloat` defaults to FLOAT (storage-float), NOT half. This is deliberate and load-bearing:
 // iparticle uses `ifloat` fields, and a StructuredBuffer<iparticle> must have a layout that every backend
-// agrees on. `float` fields are unambiguously 56 bytes on FXC/DXC/Metal/Vulkan; `half` fields are only
-// 56 where the compiler promotes half in structured buffers, which is NOT guaranteed on DX12/mobile.
-// Keeping float here preserves the safe 56-byte cross-platform particle layout.
+// agrees on. M0 grew iparticle to 15 fields; `float` fields are unambiguously 60 bytes on FXC/DXC/Metal/
+// Vulkan; `half` fields would be 30 bytes and are only safe where the compiler promotes half in structured
+// buffers, which is NOT guaranteed on DX12/mobile. Keeping float preserves the safe 60-byte cross-platform layout.
 //
 // The switch is CENTRAL and consistent with C# (Types.cs gates the same symbol): flip both sides to half
 // via the InkTools > ifloat Mode toggle — the single writer of the generated include (this file's compile-
@@ -31,7 +31,7 @@
     #define ifloat3 half3
     #define ifloat4 half4
 #else
-    // Default: storage-float. Guarantees the 56-byte iparticle layout on every backend.
+    // Default: storage-float. Guarantees the 60-byte iparticle layout on every backend.
     #define ifloat float
     #define ifloat2 float2
     #define ifloat3 float3
