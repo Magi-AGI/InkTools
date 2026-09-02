@@ -344,7 +344,13 @@ void DiffuseHeat(iuint3 id : SV_DispatchThreadID)
     uint pidx = id.y * size.x + id.x;
     bool iceThermalSolid = _ThermalSolidThresholdIce > 0.0
                          && _ParticlesRead[pidx].ice >= _ThermalSolidThresholdIce;
-    bool thermalSolid = iceThermalSolid || (IsObstacle(id.xy) > 0.5);
+    // M3b: true Metal is also thermal-solid by CONCENTRATION (>= _ThermalSolidThresholdMetal, ~0.1), the
+    // same decoupled mechanism as ice — SEPARATE from Metal's 0.5 flow-obstacle threshold. Dense metal
+    // (>=0.5) already conducts via IsObstacle; this adds thin/sub-obstacle metal conduction. BlackBody is
+    // NOT metal and is never classified here. Reuses the generic solid rate (no distinct metal rate yet).
+    bool metalThermalSolid = _ThermalSolidThresholdMetal > 0.0
+                          && _ParticlesRead[pidx].metal >= _ThermalSolidThresholdMetal;
+    bool thermalSolid = iceThermalSolid || metalThermalSolid || (IsObstacle(id.xy) > 0.5);
 
     ifloat solidRate = max(_ThermalDiffusionSolid, _ThermalDiffusion);
     ifloat rate = thermalSolid ? solidRate : _ThermalDiffusion;

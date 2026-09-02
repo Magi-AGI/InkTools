@@ -162,6 +162,10 @@ float _ThermalSolidThresholdIce; // CP8o: ice concentration at/above which a cel
                               // rate — DECOUPLED from _ObstacleThresholdIce (which governs FLUID blocking
                               // and stays high, 0.5). ~0.1, below brush density (0.3), so painted ice
                               // conducts/melts without becoming a flow obstacle. 0 disables the ice path.
+float _ThermalSolidThresholdMetal; // M3b: metal concentration at/above which a cell conducts at the SOLID
+                              // rate — same concentration-gated mechanism as ice, DECOUPLED from Metal's 0.5
+                              // flow-obstacle threshold. ~0.1 lets thin painted metal conduct without damming
+                              // flow; dense metal (>=0.5) already conducts via IsObstacle. 0 disables the metal path.
 float _AmbientTemperature;   // temperature heat RELAXES TOWARD (the neutral / room temperature)
 // Absolute lower bound of the temperature range. NOT the same as _AmbientTemperature: the neutral
 // is only the relaxation target, whereas this is the floor. Clamping transport to the neutral would
